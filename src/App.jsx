@@ -4,22 +4,32 @@ import { ProtectedRoute, PublicRoute } from './components/RouteGuards';
 import AppShell from './components/AppShell';
 import Spinner from './components/Spinner';
 
-const Splash = lazy(() => import('./pages/Splash'));
-const Login = lazy(() => import('./pages/Login'));
-const Signup = lazy(() => import('./pages/Signup'));
-const Verify = lazy(() => import('./pages/Verify'));
-const Home = lazy(() => import('./pages/Home'));
-const NewOrder = lazy(() => import('./pages/NewOrder'));
-const OrderTracking = lazy(() => import('./pages/OrderTracking'));
-const OrderHistory = lazy(() => import('./pages/OrderHistory'));
-const RiderFeed = lazy(() => import('./pages/RiderFeed'));
-const RiderOrderDetail = lazy(() => import('./pages/RiderOrderDetail'));
-const ActiveOrder = lazy(() => import('./pages/ActiveOrder'));
-const Earnings = lazy(() => import('./pages/Earnings'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Notifications = lazy(() => import('./pages/Notifications'));
-const Chat = lazy(() => import('./pages/Chat'));
-const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+// Retry a lazy chunk once before giving up — flaky mobile networks sometimes
+// drop the first request. A second failure is caught by the ErrorBoundary.
+const lazyRetry = (loader) =>
+  lazy(() =>
+    loader().catch((err) => {
+      console.warn('[app] chunk load failed — retrying', err);
+      return loader();
+    }),
+  );
+
+const Splash = lazyRetry(() => import('./pages/Splash'));
+const Login = lazyRetry(() => import('./pages/Login'));
+const Signup = lazyRetry(() => import('./pages/Signup'));
+const Verify = lazyRetry(() => import('./pages/Verify'));
+const Home = lazyRetry(() => import('./pages/Home'));
+const NewOrder = lazyRetry(() => import('./pages/NewOrder'));
+const OrderTracking = lazyRetry(() => import('./pages/OrderTracking'));
+const OrderHistory = lazyRetry(() => import('./pages/OrderHistory'));
+const RiderFeed = lazyRetry(() => import('./pages/RiderFeed'));
+const RiderOrderDetail = lazyRetry(() => import('./pages/RiderOrderDetail'));
+const ActiveOrder = lazyRetry(() => import('./pages/ActiveOrder'));
+const Earnings = lazyRetry(() => import('./pages/Earnings'));
+const Profile = lazyRetry(() => import('./pages/Profile'));
+const Notifications = lazyRetry(() => import('./pages/Notifications'));
+const Chat = lazyRetry(() => import('./pages/Chat'));
+const Leaderboard = lazyRetry(() => import('./pages/Leaderboard'));
 
 const loader = (el) => (
   <Suspense fallback={<Spinner label="LOADING..." />}>{el}</Suspense>

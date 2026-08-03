@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import PixelCard from '../components/PixelCard';
 import PixelButton from '../components/PixelButton';
 import PixelBadge from '../components/PixelBadge';
+import Spinner from '../components/Spinner';
 import { ShopChip } from '../components/Logo';
 import { orders } from '../lib/backend';
 import { PAGE_SIZE } from '../lib/constants';
@@ -15,16 +16,47 @@ export default function Earnings() {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [state, setState] = useState({ orders: [], total: 0, hasMore: false });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
-    orders.getRiderEarnings(user.uid, { page, pageSize: PAGE_SIZE }).then((res) => {
-      if (active) setState(res);
-    });
+    setLoading(true);
+    orders
+      .getRiderEarnings(user.uid, { page, pageSize: PAGE_SIZE })
+      .then((res) => {
+        if (active) {
+          setState(res);
+          setError(false);
+        }
+      })
+      .catch(() => {
+        if (active) setError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => { active = false; };
-  }, [user.uid, page]);
+  }, [user.uid, page, reload]);
 
   const { orders: list, total, hasMore } = state;
+
+  if (loading && list.length === 0) return <Spinner label="TALLYING EARNINGS..." />;
+
+  if (error && list.length === 0) {
+    return (
+      <PixelCard>
+        <div className="font-pixel text-[11px] text-danger mb-2">COULD NOT LOAD EARNINGS</div>
+        <p className="font-crt text-fade text-lg mb-4">
+          Check your connection and try again.
+        </p>
+        <PixelButton variant="sky" block onClick={() => setReload((r) => r + 1)}>
+          Retry
+        </PixelButton>
+      </PixelCard>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">

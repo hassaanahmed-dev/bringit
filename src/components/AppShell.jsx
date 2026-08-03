@@ -15,7 +15,7 @@ const TABS = [
 ];
 
 export default function AppShell() {
-  const { user, logout } = useAuth();
+  const { user, logout, isFirebase } = useAuth();
   const navigate = useNavigate();
   const unread = useNotifications(user?.uid).unread;
 
@@ -30,10 +30,21 @@ export default function AppShell() {
             <div className="flex items-center gap-2">
               <Link
                 to={ROUTES.NOTIFICATIONS}
-                className="relative font-pixel text-[10px] border-2 border-line px-2 py-1.5 hover:border-gold hover:text-gold cursor-pointer"
+                className="relative inline-flex items-center justify-center px-2 py-1.5 border-2 border-line hover:border-gold hover:text-gold text-cream cursor-pointer"
                 aria-label="Notifications"
               >
-                ◂▸
+                <svg
+                  width="11"
+                  height="12"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="pointer-events-none"
+                >
+                  <path d="M8 1.8c2.3 0 3.6 2 3.6 4.4v2.4L13.4 11H2.6l1.8-2.4V6.2c0-2.4 1.3-4.4 3.6-4.4Z" />
+                  <path d="M6.2 12.4a1.8 1.8 0 0 0 3.6 0" strokeLinecap="round" />
+                </svg>
                 {unread > 0 && (
                   <span className="absolute -top-2 -right-2 w-5 h-5 bg-brand border-2 border-black font-pixel text-[8px] text-black flex items-center justify-center">
                     {unread}
@@ -114,6 +125,9 @@ export default function AppShell() {
               </NavLink>
             ),
           )}
+        </div>
+        <div className="pb-1 text-center font-pixel text-[6px] text-fade">
+          {isFirebase ? 'CONNECTED: FIREBASE FIRESTORE' : 'DEMO MODE: LOCAL STORAGE'}
         </div>
       </nav>
     </div>

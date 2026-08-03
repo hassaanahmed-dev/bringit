@@ -22,6 +22,16 @@ export async function getLeaderboard({ role = 'customer', limit = 10 } = {}) {
   return snap.docs.map(mapLeaderboard);
 }
 
+// Fetch every row for a role (docs are tiny: uid, name, count, ratings) so the
+// page can compute an exact campus-wide total and the viewer's global rank
+// without an artificial cap.
+export async function getAllLeaderboard({ role = 'customer' } = {}) {
+  if (!lbRef) return [];
+  const q = query(lbRef, where('role', '==', role));
+  const snap = await getDocs(q);
+  return snap.docs.map(mapLeaderboard);
+}
+
 export function listenLeaderboard({ role = 'customer', limit = 10 } = {}, cb) {
   if (!lbRef) {
     cb([]);

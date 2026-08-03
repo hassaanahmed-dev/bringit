@@ -20,12 +20,19 @@ export default function RiderOrderDetail() {
   const [order, setOrder] = useState(null);
   const [busy, setBusy] = useState(false);
   const [takenMsg, setTakenMsg] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    return orders.listenOrder(id, (o) => {
-      setOrder(o);
-      if (o && o.status !== ORDER_STATUS.OPEN) setTakenMsg(true);
-    });
+    setLoadError(false);
+    return orders.listenOrder(
+      id,
+      (o) => {
+        setOrder(o);
+        if (o) setLoadError(false);
+        if (o && o.status !== ORDER_STATUS.OPEN) setTakenMsg(true);
+      },
+      () => setLoadError(true),
+    );
   }, [id]);
 
   const accept = async () => {
@@ -45,6 +52,20 @@ export default function RiderOrderDetail() {
     toast('Order accepted! Head to the shops.', 'success');
     navigate(ROUTES.ACTIVE_ORDER(order.id));
   };
+
+  if (loadError && !order) {
+    return (
+      <PixelCard>
+        <div className="font-pixel text-[11px] text-danger mb-2">UNABLE TO LOAD MISSION</div>
+        <p className="font-crt text-fade text-lg mb-4">
+          This order doesn't exist or you can't view it.
+        </p>
+        <PixelButton variant="sky" block onClick={() => navigate(ROUTES.RIDER_FEED)}>
+          Back to Feed
+        </PixelButton>
+      </PixelCard>
+    );
+  }
 
   if (!order) return <div className="font-pixel text-[10px] text-fade py-10 text-center">LOADING MISSION...</div>;
 

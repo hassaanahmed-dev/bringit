@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -21,20 +21,37 @@ export default function OrderTracking() {
   const { toast } = useToast();
 
   const [order, setOrder] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [rating, setRating] = useState(0);
   const [ratingDone, setRatingDone] = useState(false);
   const [showRankUp, setShowRankUp] = useState(false);
   const [rankPrev, setRankPrev] = useState(null);
   const [rankNext, setRankNext] = useState(null);
+  const prevStatusRef = useRef(null);
 
   useEffect(() => {
-    return orders.listenOrder(id, setOrder);
+    setLoadError(false);
+    return orders.listenOrder(
+      id,
+      (o) => {
+        setOrder(o);
+        if (o) setLoadError(false);
+      },
+      () => setLoadError(true),
+    );
   }, [id]);
 
   useEffect(() => {
     if (!order) return;
-    if (order.status === ORDER_STATUS.DELIVERED && order.customerId === user.uid) {
+    // Only celebrate a rank-up when the order flips to Delivered live on this
+    // screen — not every time someone re-opens an already-delivered order.
+    const becameDelivered =
+      order.status === ORDER_STATUS.DELIVERED &&
+      prevStatusRef.current !== ORDER_STATUS.DELIVERED &&
+      prevStatusRef.current !== null;
+    prevStatusRef.current = order.status;
+    if (becameDelivered && order.customerId === user.uid) {
       const prevCount = order.customerOrderCount ?? 0;
       const nextCount = prevCount + 1;
       const prevRank = getRank(prevCount);
@@ -46,6 +63,20 @@ export default function OrderTracking() {
       }
     }
   }, [order?.status, user.uid]);
+
+  if (loadError && !order) {
+    return (
+      <PixelCard>
+        <div className="font-pixel text-[11px] text-danger mb-2">UNABLE TO LOAD ORDER</div>
+        <p className="font-crt text-fade text-lg mb-4">
+          This order doesn't exist or you can't view it.
+        </p>
+        <PixelButton variant="sky" block onClick={() => navigate(ROUTES.HOME)}>
+          Back Home
+        </PixelButton>
+      </PixelCard>
+    );
+  }
 
   if (!order) return <div className="font-pixel text-[10px] text-fade py-10 text-center">LOCATING ORDER...</div>;
 

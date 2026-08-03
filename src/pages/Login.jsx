@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -9,13 +9,20 @@ import Logo from '../components/Logo';
 import { ROUTES } from '../lib/routes';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, revoked, clearRevoked, isFirebase } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (revoked) {
+      toast('ACCOUNT REMOVED FROM THE SERVER — CREATE A NEW ONE', 'error');
+      clearRevoked();
+    }
+  }, [revoked, clearRevoked, toast]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -71,6 +78,9 @@ export default function Login() {
           <Link to={ROUTES.SIGNUP} className="text-sky underline cursor-pointer">
             Join the quest
           </Link>
+        </p>
+        <p className="mt-3 text-center font-pixel text-[6px] text-fade">
+          {isFirebase ? 'CONNECTED: FIREBASE FIRESTORE' : 'DEMO MODE: LOCAL STORAGE'}
         </p>
       </div>
     </div>

@@ -28,6 +28,9 @@ export default function Chat() {
       }
       off.push(orders.listenOrder(id, setOrder));
       off.push(chat.listenMessages(id, setMessages));
+    }).catch(() => {
+      if (!active) return;
+      setDenied(true);
     });
     return () => {
       active = false;

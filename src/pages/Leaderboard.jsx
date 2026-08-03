@@ -13,9 +13,11 @@ export default function Leaderboard() {
   useEffect(() => {
     const unsub = leaderboard.listenLeaderboard({ role, limit: 10 }, (list) => setRows(list));
     let active = true;
-    leaderboard.getLeaderboard({ role, limit: 100000 }).then((list) => {
-      if (active) setAll(list);
-      if (active) setTotal(list.length);
+    leaderboard.getAllLeaderboard({ role }).then((list) => {
+      if (active) {
+        setAll(list);
+        setTotal(list.length);
+      }
     });
     return () => {
       active = false;

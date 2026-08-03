@@ -54,8 +54,10 @@ export async function createOrder({
 
 export const getOrder = async (orderId) => getOrderSync(orderId);
 
-export function listenOrder(orderId, cb) {
+export function listenOrder(orderId, cb, onError) {
+  const exists = !!getOrderSync(orderId);
   cb(getOrderSync(orderId));
+  if (!exists) onError?.({ code: 'NOT_FOUND' });
   return on('dbchange', () => cb(getOrderSync(orderId)));
 }
 

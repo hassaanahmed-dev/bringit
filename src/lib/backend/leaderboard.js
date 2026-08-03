@@ -23,6 +23,10 @@ export async function getLeaderboard({ role = 'customer', limit = 10 } = {}) {
   return leaderboardRows({ role, limit });
 }
 
+export async function getAllLeaderboard({ role = 'customer' } = {}) {
+  return leaderboardRows({ role, limit: Infinity });
+}
+
 export function listenLeaderboard({ role = 'customer', limit = 10 } = {}, cb) {
   const refresh = () => cb(leaderboardRows({ role, limit }));
   refresh();

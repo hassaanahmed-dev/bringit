@@ -40,7 +40,16 @@ export default function Verify() {
   };
 
   const resend = async () => {
-    await sendVerificationEmail();
+    const res = await sendVerificationEmail();
+    if (!res || res.ok === false) {
+      toast(
+        res?.error === 'NOT_LOGGED_IN'
+          ? 'SESSION EXPIRED — LOG IN AGAIN'
+          : 'EMAIL FAILED TO SEND — TRY AGAIN',
+        'error',
+      );
+      return;
+    }
     setSent(true);
     startCooldown();
     toast('Verification email sent again', 'success');
@@ -83,8 +92,8 @@ export default function Verify() {
           </p>
           <p className="font-pixel text-[11px] text-gold text-center mb-5">{user.email}</p>
           <p className="font-crt text-fade text-lg text-center mb-6">
-            Click the link in the email to activate your player. You can't order or deliver until
-            you're verified.
+            Click the link in the email to activate your player. It expires in 30 minutes. If
+            you don't see it, check your spam or trash folders too.
           </p>
 
           <div className="flex flex-col gap-3">
@@ -114,7 +123,7 @@ export default function Verify() {
 
           {sent && (
             <p className="mt-4 text-center font-pixel text-[9px] text-leaf">
-              +1 EMAIL SENT · CHECK SPAM TOO
+              +1 EMAIL SENT · CHECK SPAM / TRASH TOO
             </p>
           )}
         </PixelCard>
