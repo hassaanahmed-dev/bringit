@@ -48,9 +48,18 @@ export function createVerificationEmailHtml({ email, link, name }) {
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;">
                   <tr>
                     <td class="pad" style="padding:32px 28px 8px 28px;">
-                      <p class="head" style="margin:0 0 20px 0;font-size:20px;font-weight:bold;color:#ff2e63;text-align:center;letter-spacing:2px;">
-                        BRING<span style="color:#efece1;">IT</span>
-                      </p>
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 20px 0;">
+                        <tr>
+                          <td align="center">
+                            <img
+                              src="https://bringit-82469.web.app/images/logo.png"
+                              alt="BRINGIT"
+                              width="110"
+                              style="display:block;width:110px;max-width:100%;height:auto;border:3px solid #000000;image-rendering:pixelated;"
+                            />
+                          </td>
+                        </tr>
+                      </table>
                       <p class="hi" style="margin:0 0 6px 0;font-size:16px;font-weight:bold;color:#efece1;text-align:center;line-height:1.6;">
                         HEY ${firstName.toUpperCase()},
                       </p>
