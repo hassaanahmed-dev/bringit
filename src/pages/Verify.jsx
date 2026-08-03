@@ -69,7 +69,7 @@ export default function Verify() {
   if (!user) return null;
 
   return (
-    <div className="min-h-dvh flex items-center justify-center px-4 scanlines">
+    <div className="min-h-dvh flex items-center justify-center px-4 py-6 scanlines">
       <div className="w-full max-w-sm">
         <PixelCard tone="dark" className="border-sky">
           <div className="flex justify-center mb-4">

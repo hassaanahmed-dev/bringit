@@ -1,15 +1,16 @@
+import logoSrc from '/images/logo.png';
 import { formatMoney } from '../lib/rank';
 import { SHOP_COLORS, SHOP_ICONS } from '../lib/constants';
 
 export default function Logo({ small = false }) {
   return (
-    <div className="flex items-center gap-3 select-none">
-      <div className="relative w-10 h-10 shrink-0">
-        <div className="absolute inset-0 bg-brand pixel-hard" />
-        <div className="absolute inset-[6px] bg-ink border-2 border-black" />
-        <div className="absolute inset-[10px] bg-brand" />
-        <div className="absolute left-[16px] top-[20px] w-4 h-[6px] bg-black" />
-      </div>
+    <div className="flex items-center gap-2.5 select-none">
+      <img
+        src={logoSrc}
+        alt="BringIt logo"
+        className={`shrink-0 ${small ? 'w-8 h-8' : 'w-10 h-10'}`}
+        style={{ imageRendering: 'pixelated' }}
+      />
       <div>
         <div className={`font-pixel text-brand tracking-wide ${small ? 'text-sm' : 'text-lg'}`}>
           BRING<span className="text-cream">IT</span>

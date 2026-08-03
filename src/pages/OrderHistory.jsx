@@ -35,7 +35,7 @@ export default function OrderHistory() {
   const { orders: list, hasMore } = state;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div>
         <h1 className="font-pixel text-[13px] text-cream">ORDER LOG</h1>
         <p className="font-crt text-fade text-lg">Every quest you've sent to the feed.</p>

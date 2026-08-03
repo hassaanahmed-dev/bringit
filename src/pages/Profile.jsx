@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import PixelCard from '../components/PixelCard';
 import PixelButton from '../components/PixelButton';
-import PixelBadge from '../components/PixelBadge';
 import PixelInput from '../components/PixelInput';
 import { RatingSummary, Stars } from '../components/Stars';
 import { orders } from '../lib/backend';
@@ -44,14 +43,14 @@ export default function Profile() {
   const nextAt = nextTier.min;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div>
         <h1 className="font-pixel text-[13px] text-cream">PLAYER CARD</h1>
         <p className="font-crt text-fade text-lg">Your campus reputation.</p>
       </div>
 
       <PixelCard tone="dark">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div
             className="w-16 h-16 border-4 border-black flex items-center justify-center font-pixel text-xl text-black"
             style={{ backgroundColor: tier.color }}
@@ -94,22 +93,55 @@ export default function Profile() {
         </PixelCard>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
         <PixelCard>
-          <div className="font-pixel text-[8px] text-fade mb-2">CUSTOMER RANK</div>
-          <PixelBadge orderCount={user.customerOrderCount} />
-          <div className="font-crt text-fade text-base mt-2">{user.customerOrderCount} orders placed</div>
-          <div className="font-pixel text-[8px] text-fade mt-2">
+          <div className="font-pixel text-[8px] text-fade mb-3">CUSTOMER RANK</div>
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="w-14 h-14 flex items-center justify-center font-pixel text-lg text-black border-4 border-black"
+              style={{ backgroundColor: tier.color }}
+            >
+              {tier.name.slice(0, 2).toUpperCase()}
+            </div>
+            <span
+              className="font-pixel text-[10px] px-2 py-1 border-2"
+              style={{ borderColor: tier.color, color: tier.color }}
+            >
+              {tier.name.toUpperCase()}
+            </span>
+          </div>
+          <div className="font-crt text-fade text-base mt-3 text-center">{user.customerOrderCount} orders placed</div>
+          <div className="font-pixel text-[8px] text-fade mt-2 text-center">
             {user.customerOrderCount < 60 ? `NEXT AT ${nextAt} ORDERS` : 'MAX TIER!'}
           </div>
         </PixelCard>
         <PixelCard>
-          <div className="font-pixel text-[8px] text-fade mb-2">RIDER RANK</div>
-          <PixelBadge orderCount={user.riderOrderCount} label="RIDER" />
-          <div className="font-crt text-fade text-base mt-2">{user.riderOrderCount} deliveries</div>
+          <div className="font-pixel text-[8px] text-fade mb-3">RIDER RANK</div>
+          <div className="flex flex-col items-center gap-2">
+            {(() => {
+              const riderTier = getRank(user.riderOrderCount);
+              return (
+                <>
+                  <div
+                    className="w-14 h-14 flex items-center justify-center font-pixel text-lg text-black border-4 border-black"
+                    style={{ backgroundColor: riderTier.color }}
+                  >
+                    {riderTier.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span
+                    className="font-pixel text-[10px] px-2 py-1 border-2"
+                    style={{ borderColor: riderTier.color, color: riderTier.color }}
+                  >
+                    {riderTier.name.toUpperCase()}
+                  </span>
+                </>
+              );
+            })()}
+          </div>
+          <div className="font-crt text-fade text-base mt-3 text-center">{user.riderOrderCount} deliveries</div>
           <button
             onClick={() => navigate(ROUTES.EARNINGS)}
-            className="mt-2 font-pixel text-[8px] text-gold border-2 border-gold px-2 py-1 hover:bg-gold hover:text-black cursor-pointer"
+            className="mt-2 w-full font-pixel text-[8px] text-gold border-2 border-gold px-2 py-1.5 hover:bg-gold hover:text-black cursor-pointer text-center"
           >
             EARNINGS ▸ Rs {earned.toLocaleString()}
           </button>
