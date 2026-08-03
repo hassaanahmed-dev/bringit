@@ -1,0 +1,18 @@
+export const ROUTES = {
+  SPLASH: '/',
+  LOGIN: '/login',
+  SIGNUP: '/signup',
+  VERIFY: '/verify',
+  HOME: '/home',
+  NEW_ORDER: '/new-order',
+  ORDER: (id) => `/order/${id}`,
+  ORDER_HISTORY: '/order-history',
+  RIDER_FEED: '/feed',
+  RIDER_ORDER: (id) => `/rider/order/${id}`,
+  ACTIVE_ORDER: (id) => `/active/${id}`,
+  EARNINGS: '/earnings',
+  PROFILE: '/profile',
+  NOTIFICATIONS: '/notifications',
+  CHAT: (id) => `/chat/${id}`,
+  LEADERBOARD: '/leaderboard',
+};

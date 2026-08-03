@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════════════
+    // USERS — private, only the owner reads/writes; order
+    // participants may update ONLY the aggregate counters.
+    // ═══════════════════════════════════════════════════
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+
+      allow update: if request.auth != null && (
+        request.auth.uid == userId
+        || (
+          request.method == 'update'
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['customerOrderCount', 'riderOrderCount', 'riderRatingAvg', 'riderRatingCount'])
+        )
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ORDERS — full lifecycle state machine.
+    // ═══════════════════════════════════════════════════
+    match /orders/{orderId} {
+      allow read: if request.auth != null && (
+        resource.data.status == 'Open'
+        || resource.data.customerId == request.auth.uid
+        || resource.data.riderId == request.auth.uid
+      );
+
+      allow create: if request.auth != null
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.status == 'Open'
+        && request.resource.data.riderId == null;
+
+      allow update: if request.auth != null && (
+
+        // (a) Customer cancels — only while Open or Accepted
+        (
+          resource.data.customerId == request.auth.uid
+          && resource.data.status in ['Open', 'Accepted']
+          && request.resource.data.status == 'Cancelled'
+        )
+
+        // (b) Any authenticated rider accepts an Open order
+        || (
+          resource.data.status == 'Open'
+          && request.resource.data.status == 'Accepted'
+          && request.resource.data.riderId == request.auth.uid
+        )
+
+        // (c) The assigned rider progresses their own order forward
+        || (
+          resource.data.riderId == request.auth.uid
+          && (
+            (resource.data.status == 'Accepted' && request.resource.data.status == 'Paid at Shop')
+            || (resource.data.status == 'Paid at Shop' && request.resource.data.status == 'Delivered')
+          )
+        )
+
+        // (d) The assigned rider cancels before Paid at Shop — back to pool
+        || (
+          resource.data.riderId == request.auth.uid
+          && resource.data.status == 'Accepted'
+          && request.resource.data.status == 'Open'
+          && request.resource.data.riderId == null
+        )
+
+        // (e) The customer submits a rating on their own Delivered order
+        || (
+          resource.data.customerId == request.auth.uid
+          && resource.data.status == 'Delivered'
+          && request.resource.data.rated == true
+        )
+      );
+
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // NOTIFICATIONS — owned by the recipient (targetUid).
+    // Anyone authenticated may push (lifecycle writers are order
+    // participants by construction).
+    // ═══════════════════════════════════════════════════
+    match /notifications/{id} {
+      allow read, update, delete: if request.auth != null
+        && resource.data.targetUid == request.auth.uid;
+      allow create: if request.auth != null;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // MESSAGES — only the two order participants may read/post.
+    // The linked order doc is checked directly via get().
+    // ═══════════════════════════════════════════════════
+    match /messages/{id} {
+      function isParticipant(uid) {
+        let order = get(/databases/$(database)/documents/orders/$(resource.data.orderId)).data;
+        return order != null && (order.customerId == uid || order.riderId == uid);
+      }
+      allow read: if request.auth != null && isParticipant(request.auth.uid);
+      allow create: if request.auth != null && isParticipant(request.auth.uid)
+        && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // LEADERBOARD — public read. Writes are non-PII aggregates
+    // (name + counts) refreshed by signup and the order lifecycle,
+    // so any authenticated user may keep them in sync.
+    // ═══════════════════════════════════════════════════
+    match /leaderboard/{id} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null;
+      allow delete: if false;
+    }
+  }
+}

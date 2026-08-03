@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-pixel: "Press Start 2P", "Courier New", monospace;
+  --font-crt: "VT323", "Consolas", monospace;
+
+  --color-ink: #0d0d14;
+  --color-panel: #171720;
+  --color-panel-2: #1f1f2b;
+  --color-line: #34344a;
+  --color-cream: #efece1;
+  --color-fade: #9aa0b4;
+  --color-brand: #ff2e63;
+  --color-brand-dark: #b3123f;
+  --color-sky: #38b6ff;
+  --color-leaf: #3ddc84;
+  --color-gold: #ffc857;
+  --color-royal: #b06cff;
+  --color-danger: #ff4d5e;
+}
+
+html, body {
+  background: var(--color-ink);
+  color: var(--color-cream);
+  font-family: var(--font-crt);
+  font-size: 21px;
+  -webkit-font-smoothing: none;
+  image-rendering: pixelated;
+}
+
+#root { min-height: 100dvh; }
+
+/* retro scanline overlay */
+.scanlines::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 90;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0px,
+    rgba(0,0,0,0) 3px,
+    rgba(0,0,0,0.16) 4px
+  );
+}
+
+.pixel-border {
+  border: 3px solid var(--color-line);
+}
+
+.pixel-shadow {
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.55);
+}
+
+.pixel-hard {
+  border: 3px solid #000;
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.7);
+}
+
+.blink { animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+
+.blink-caret { caret-color: var(--color-brand); animation: caretPulse 1s steps(2, start) infinite; }
+@keyframes caretPulse { to { caret-color: transparent; } }
+
+.step-in { animation: stepIn .22s steps(4, end) both; }
+@keyframes stepIn {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.float-bob { animation: floatBob 2.4s steps(6) infinite; }
+@keyframes floatBob {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.cursor-pixel { cursor: pointer; }
+
+.stars-glow { text-shadow: 0 0 8px var(--color-gold); }
+
+/* pixel scrollbar */
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: var(--color-panel); }
+::-webkit-scrollbar-thumb { background: var(--color-line); border: 2px solid var(--color-ink); }
+
+.tap { min-height: 48px; }
