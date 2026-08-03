@@ -27,7 +27,7 @@ export default function Notifications() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-pixel text-[13px] text-cream">NOTIFICATIONS</h1>

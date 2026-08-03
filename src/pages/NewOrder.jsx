@@ -66,7 +66,7 @@ export default function NewOrder() {
   const total = zone ? zone.fee : 0;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div>
         <h1 className="font-pixel text-[13px] text-cream">NEW ORDER</h1>
         <p className="font-crt text-fade text-lg">What does the campus need you to grab?</p>
@@ -101,7 +101,7 @@ export default function NewOrder() {
 
       <PixelCard>
         <div className="font-pixel text-[10px] text-sky mb-3">2 · PICK SHOPS (MULTI)</div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2">
           {PICKUP_SHOPS.map((name) => {
             const on = shops.includes(name);
             const color = SHOP_COLORS[name];
@@ -189,7 +189,7 @@ export default function NewOrder() {
         <div className="flex flex-col gap-2 font-crt text-lg">
           <div className="flex justify-between">
             <span className="text-fade">Shops</span>
-            <span className="text-cream text-right">
+            <span className="text-cream text-right break-anywhere">
               {shops.length ? shops.join(', ') : '— none —'}
             </span>
           </div>

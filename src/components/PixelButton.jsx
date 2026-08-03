@@ -26,7 +26,7 @@ export default function PixelButton({
       disabled={disabled}
       className={[
         'font-pixel uppercase cursor-pointer tap transition-transform duration-75 active:translate-y-0.5',
-        small ? 'text-[10px] px-3 py-2' : 'text-[11px] px-5 py-3.5',
+        small ? 'text-[10px] px-3 py-2' : 'text-[11px] px-4 sm:px-5 py-3 sm:py-3.5',
         block ? 'w-full' : '',
         'border-2 shadow-[4px_4px_0_rgba(0,0,0,0.7)]',
         variants[variant],

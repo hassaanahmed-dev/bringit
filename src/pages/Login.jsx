@@ -37,7 +37,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-dvh flex items-center justify-center px-4 scanlines">
+    <div className="min-h-dvh flex items-center justify-center px-4 py-6 scanlines">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex justify-center">
           <Logo />

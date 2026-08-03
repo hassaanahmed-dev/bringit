@@ -60,7 +60,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex flex-col gap-3 h-[calc(100dvh-8rem)]">
+    <div className="flex flex-col gap-2 sm:gap-3 h-[calc(100dvh-7rem)] sm:h-[calc(100dvh-8rem)]">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-pixel text-[12px] text-cream">
@@ -127,7 +127,7 @@ export default function Chat() {
             onKeyDown={(e) => e.key === 'Enter' && send()}
             placeholder="Type a message..."
             maxLength={300}
-            className="flex-1 bg-ink border-2 border-line px-3 py-2.5 text-cream font-crt text-lg outline-none focus:border-sky placeholder:text-fade/50 caret-brand blink-caret"
+            className="flex-1 min-w-0 bg-ink border-2 border-line px-2 sm:px-3 py-2 sm:py-2.5 text-cream font-crt text-lg outline-none focus:border-sky placeholder:text-fade/50 caret-brand blink-caret"
           />
           <PixelButton onClick={send} disabled={!text.trim()}>
             SEND

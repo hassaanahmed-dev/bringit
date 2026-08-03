@@ -24,12 +24,26 @@ html, body {
   background: var(--color-ink);
   color: var(--color-cream);
   font-family: var(--font-crt);
-  font-size: 21px;
+  font-size: 18px;
   -webkit-font-smoothing: none;
   image-rendering: pixelated;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
 }
 
-#root { min-height: 100dvh; }
+@media (min-width: 400px) {
+  html, body { font-size: 20px; }
+}
+@media (min-width: 640px) {
+  html, body { font-size: 21px; }
+}
+
+#root {
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
 
 /* retro scanline overlay */
 .scanlines::before {
@@ -81,9 +95,40 @@ html, body {
 
 .stars-glow { text-shadow: 0 0 8px var(--color-gold); }
 
-/* pixel scrollbar */
-::-webkit-scrollbar { width: 12px; }
-::-webkit-scrollbar-track { background: var(--color-panel); }
-::-webkit-scrollbar-thumb { background: var(--color-line); border: 2px solid var(--color-ink); }
+/* pixel scrollbar — hide on mobile for cleaner feel */
+@media (min-width: 640px) {
+  ::-webkit-scrollbar { width: 12px; }
+  ::-webkit-scrollbar-track { background: var(--color-panel); }
+  ::-webkit-scrollbar-thumb { background: var(--color-line); border: 2px solid var(--color-ink); }
+}
 
+/* touch-friendly minimum tap target (48px per WCAG) */
 .tap { min-height: 48px; }
+
+/* safe-area padding for notched phones */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* prevent long words from overflowing on small screens */
+.break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* mobile-friendly input styling — prevent zoom on iOS */
+input, textarea, select {
+  font-size: 16px !important;
+}
+@media (min-width: 640px) {
+  input, textarea, select {
+    font-size: inherit !important;
+  }
+}
