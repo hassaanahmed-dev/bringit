@@ -2,15 +2,52 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendEmailVerification,
   reload,
-  onAuthStateChanged,
+  onIdTokenChanged,
+  fetchSignInMethodsForEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, collection } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { isFastEmail, toTitleCase } from '../../validate';
 
 const profileRef = (uid) => doc(db, 'users', uid);
+
+// Branded verification emails are sent by a Cloudflare Worker (see worker/).
+// Firebase's built-in email is intentionally never used — the worker is the
+// only path, so a failure surfaces to the caller instead of silently sending
+// the default template.
+const VERIFY_EMAIL_WORKER_URL = import.meta.env.VITE_VERIFY_EMAIL_URL;
+
+async function sendBrandedVerificationEmail(fbUser, name = '') {
+  if (!VERIFY_EMAIL_WORKER_URL || !fbUser) {
+    throw new Error('Verification worker not configured');
+  }
+  const idToken = await fbUser.getIdToken();
+  const response = await fetch(VERIFY_EMAIL_WORKER_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    throw new Error(`Verification worker failed (${response.status})`);
+  }
+}
+
+// Codes that mean the account itself is gone (deleted/disabled/expired).
+const SESSION_DEAD = [
+  'auth/user-not-found',
+  'auth/user-disabled',
+  'auth/user-token-expired',
+  'auth/invalid-user-token',
+];
+
+async function clearSession() {
+  try {
+    await signOut(auth);
+  } catch {
+    // ignore — clearing an already-dead session
+  }
+}
 
 export function getAuthErrorMessage(error) {
   const code = error?.code || '';
@@ -52,23 +89,45 @@ function toAuthUser(fbUser, profile) {
 export async function getCurrentUser() {
   const u = auth?.currentUser;
   if (!u) return null;
+  // Force a server round-trip so an account deleted in the console is detected
+  // immediately on the next visit (the local session alone survives deletion).
+  try {
+    await reload(u);
+  } catch (e) {
+    if (SESSION_DEAD.includes(e?.code)) {
+      await clearSession();
+      return null;
+    }
+  }
   const profile = await fetchProfile(u.uid);
   return toAuthUser(u, profile);
 }
 
-export function onAuthStateChange(cb) {
+export function onAuthStateChange(cb, onError) {
   if (!auth) {
     cb(null);
     return () => {};
   }
-  return onAuthStateChanged(auth, async (u) => {
-    if (!u) {
+  // onIdTokenChanged re-fires whenever the token refreshes, and surfaces an
+  // error when that refresh fails because the account was deleted or disabled —
+  // so live sessions get revoked instead of silently persisting.
+  return onIdTokenChanged(
+    auth,
+    async (u) => {
+      if (!u) {
+        cb(null);
+        return;
+      }
+      const profile = await fetchProfile(u.uid);
+      cb(toAuthUser(u, profile));
+    },
+    async (error) => {
+      console.warn('[auth] session revoked', error?.code);
+      await clearSession();
       cb(null);
-      return;
-    }
-    const profile = await fetchProfile(u.uid);
-    cb(toAuthUser(u, profile));
-  });
+      onError?.();
+    },
+  );
 }
 
 export async function signup({ name, email, phone, password }) {
@@ -90,28 +149,36 @@ export async function signup({ name, email, phone, password }) {
       riderRatingCount: 0,
       createdAt: new Date(),
     };
-    await setDoc(profileRef(user.uid), profile);
 
-    // Seed empty leaderboard entries so new players appear campus-wide.
-    const lb = collection(db, 'leaderboard');
-    await Promise.allSettled([
-      setDoc(doc(lb, `${user.uid}_customer`), {
-        uid: user.uid, name: profile.name, role: 'customer',
-        count: 0, riderRatingAvg: 0, riderRatingCount: 0,
-      }),
-      setDoc(doc(lb, `${user.uid}_rider`), {
-        uid: user.uid, name: profile.name, role: 'rider',
-        count: 0, riderRatingAvg: 0, riderRatingCount: 0,
-      }),
-    ]);
-
+    let profileWriteFailed = false;
     try {
-      await sendEmailVerification(user);
+      await setDoc(profileRef(user.uid), profile);
+      // Seed empty leaderboard entries so new players appear campus-wide.
+      const lb = collection(db, 'leaderboard');
+      await Promise.allSettled([
+        setDoc(doc(lb, `${user.uid}_customer`), {
+          uid: user.uid, name: profile.name, role: 'customer',
+          count: 0, riderRatingAvg: 0, riderRatingCount: 0,
+        }),
+        setDoc(doc(lb, `${user.uid}_rider`), {
+          uid: user.uid, name: profile.name, role: 'rider',
+          count: 0, riderRatingAvg: 0, riderRatingCount: 0,
+        }),
+      ]);
     } catch (e) {
+      profileWriteFailed = true;
+      console.warn('[auth] profile write failed', e);
+    }
+
+    let verificationEmailSent = true;
+    try {
+      await sendBrandedVerificationEmail(user, profile.name);
+    } catch (e) {
+      verificationEmailSent = false;
       console.warn('[auth] verification email failed', e);
     }
 
-    return { user: toAuthUser(user, profile) };
+    return { user: toAuthUser(user, profile), profileWriteFailed, verificationEmailSent };
   } catch (error) {
     return { user: null, error: { field: 'email', message: getAuthErrorMessage(error) } };
   }
@@ -135,9 +202,24 @@ export async function login(email, password) {
     return { user: toAuthUser(user, profile) };
   } catch (error) {
     const code = error?.code || '';
-    const field = ['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential'].includes(code)
-      ? 'password'
-      : 'email';
+    // Firebase often collapses "no such user" and "wrong password" into
+    // auth/invalid-credential. Probe for the account so we can tell the two
+    // apart and point the player at signup when no account exists.
+    if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
+        if (!methods || methods.length === 0) {
+          return {
+            user: null,
+            error: { field: 'email', message: 'NO ACCOUNT WITH THAT EMAIL — CREATE ONE FIRST' },
+          };
+        }
+      } catch (e) {
+        // probe failed (network etc.) — fall back to the code-based message
+      }
+      return { user: null, error: { field: 'password', message: 'WRONG PASSWORD' } };
+    }
+    const field = code === 'auth/wrong-password' ? 'password' : 'email';
     return { user: null, error: { field, message: getAuthErrorMessage(error) } };
   }
 }
@@ -148,8 +230,13 @@ export async function logout() {
 
 export async function sendVerificationEmail() {
   if (!auth?.currentUser) return { ok: false, error: 'NOT_LOGGED_IN' };
-  await sendEmailVerification(auth.currentUser);
-  return { ok: true };
+  try {
+    const profile = await fetchProfile(auth.currentUser.uid);
+    await sendBrandedVerificationEmail(auth.currentUser, profile?.name || '');
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'SEND_FAILED' };
+  }
 }
 
 export async function simulateVerification() {
@@ -164,7 +251,16 @@ export async function refreshVerificationStatus() {
 
 export async function updateProfile(patch) {
   if (!auth?.currentUser) return null;
-  await updateDoc(profileRef(auth.currentUser.uid), patch);
+  const uid = auth.currentUser.uid;
+  await updateDoc(profileRef(uid), patch);
+  // Keep the denormalized leaderboard names in sync when a player renames.
+  if (patch.name) {
+    const lb = collection(db, 'leaderboard');
+    await Promise.allSettled([
+      updateDoc(doc(lb, `${uid}_customer`), { name: patch.name }),
+      updateDoc(doc(lb, `${uid}_rider`), { name: patch.name }),
+    ]);
+  }
   return getCurrentUser();
 }
 

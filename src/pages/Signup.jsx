@@ -10,7 +10,7 @@ import { validateSignup, isFastEmail } from '../lib/validate';
 import { ROUTES } from '../lib/routes';
 
 export default function Signup() {
-  const { signup, sendVerificationEmail } = useAuth();
+  const { signup } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
@@ -36,15 +36,20 @@ export default function Signup() {
     }
 
     setBusy(true);
-    const { user, error } = await signup(form);
+    const { user, error, verificationEmailSent, profileWriteFailed } = await signup(form);
     setBusy(false);
     if (error) {
       setErrors({ [error.field]: error.message });
       toast(error.message, 'error');
       return;
     }
-    await sendVerificationEmail();
-    toast('Account created. Check your inbox!', 'success');
+    if (profileWriteFailed) {
+      toast('Account created but your profile is incomplete — will repair on login', 'error');
+    } else if (verificationEmailSent === false) {
+      toast('Account created but the email failed to send — tap Resend', 'error');
+    } else {
+      toast('Account created. Check inbox, spam, or trash!', 'success');
+    }
     navigate(ROUTES.VERIFY);
   };
 

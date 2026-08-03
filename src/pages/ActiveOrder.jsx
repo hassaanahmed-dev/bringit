@@ -19,20 +19,41 @@ export default function ActiveOrder() {
   const { toast } = useToast();
 
   const [order, setOrder] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showRankUp, setShowRankUp] = useState(false);
   const [rankPrev, setRankPrev] = useState(null);
   const [rankNext, setRankNext] = useState(null);
 
   useEffect(() => {
-    return orders.listenOrder(id, (o) => {
-      setOrder(o);
-      if (o && o.status === ORDER_STATUS.CANCELLED) {
-        toast('Customer cancelled this order', 'error');
-        setTimeout(() => navigate(ROUTES.RIDER_FEED, { replace: true }), 1500);
-      }
-    });
+    setLoadError(false);
+    return orders.listenOrder(
+      id,
+      (o) => {
+        setOrder(o);
+        if (o) setLoadError(false);
+        if (o && o.status === ORDER_STATUS.CANCELLED) {
+          toast('Customer cancelled this order', 'error');
+          setTimeout(() => navigate(ROUTES.RIDER_FEED, { replace: true }), 1500);
+        }
+      },
+      () => setLoadError(true),
+    );
   }, [id, navigate, toast]);
+
+  if (loadError && !order) {
+    return (
+      <PixelCard>
+        <div className="font-pixel text-[11px] text-danger mb-2">UNABLE TO LOAD DELIVERY</div>
+        <p className="font-crt text-fade text-lg mb-4">
+          This delivery doesn't exist or you can't view it.
+        </p>
+        <PixelButton variant="sky" block onClick={() => navigate(ROUTES.RIDER_FEED)}>
+          Back to Feed
+        </PixelButton>
+      </PixelCard>
+    );
+  }
 
   if (!order) return <div className="font-pixel text-[10px] text-fade py-10 text-center">SYNCING DELIVERY...</div>;
 

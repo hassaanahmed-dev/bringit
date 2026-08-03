@@ -16,7 +16,7 @@ export default function Home() {
     let active = true;
     orders.getRiderEarnings(user.uid, { pageSize: 1 }).then(({ total }) => {
       if (active) setEarned(total);
-    });
+    }).catch(() => {});
     return () => { active = false; };
   }, [user.uid]);
 

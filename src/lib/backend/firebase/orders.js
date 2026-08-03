@@ -80,10 +80,17 @@ export async function getOrder(orderId) {
   return snap.exists() ? mapOrder(snap) : null;
 }
 
-export function listenOrder(orderId, cb) {
-  return onSnapshot(doc(ordersRef, orderId), (snap) => {
-    cb(snap.exists() ? mapOrder(snap) : null);
-  });
+export function listenOrder(orderId, cb, onError) {
+  return onSnapshot(
+    doc(ordersRef, orderId),
+    (snap) => {
+      cb(snap.exists() ? mapOrder(snap) : null);
+    },
+    (err) => {
+      console.warn('[orders] listen failed', err?.code);
+      onError?.(err);
+    },
+  );
 }
 
 export function listenOpenOrders(cb) {
@@ -112,15 +119,15 @@ export async function getRiderEarnings(riderId, { page = 0, pageSize = 20 } = {}
     where('riderId', '==', riderId),
     where('status', '==', ORDER_STATUS.DELIVERED),
     orderBy('updatedAt', 'desc'),
-    limit((page + 1) * pageSize),
   );
   const snap = await getDocs(q);
   const all = snap.docs.map(mapOrder);
+  // Total must sum EVERY delivered order, not just the current page slice.
   const total = all.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
   return {
     total,
     orders: all.slice(page * pageSize, (page + 1) * pageSize),
-    hasMore: snap.size >= (page + 1) * pageSize,
+    hasMore: (page + 1) * pageSize < all.length,
   };
 }
 

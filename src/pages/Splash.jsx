@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PixelButton from '../components/PixelButton';
 import { ROUTES } from '../lib/routes';
+import logoSrc from '/images/logo.png';
 
 export default function Splash() {
   const navigate = useNavigate();
@@ -22,21 +23,12 @@ export default function Splash() {
         </div>
 
         <div className="mb-2 flex justify-center float-bob">
-          <div className="relative">
-            <div className="w-20 h-20 bg-brand border-4 border-black shadow-[8px_8px_0_rgba(0,0,0,0.7)]" />
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-24 h-3 bg-black/40" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-10 h-7 bg-black relative">
-                <div className="absolute left-1 top-1 w-3 h-3 bg-sky" />
-                <div className="absolute right-1 top-1 w-3 h-3 bg-gold" />
-                <div className="absolute left-1 bottom-1 w-3 h-3 bg-leaf" />
-                <div className="absolute right-1 bottom-1 w-3 h-3 bg-royal" />
-              </div>
-            </div>
-            <div className="absolute -right-3 -top-3 w-6 h-6 bg-cream border-2 border-black font-pixel text-black text-[10px] flex items-center justify-center">
-              !
-            </div>
-          </div>
+          <img
+            src={logoSrc}
+            alt="BringIt logo"
+            className="w-24 h-24 border-4 border-black shadow-[8px_8px_0_rgba(0,0,0,0.7)]"
+            style={{ imageRendering: 'pixelated' }}
+          />
         </div>
 
         <div className="font-pixel text-3xl sm:text-4xl text-cream leading-tight mb-1">

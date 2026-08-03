@@ -1,0 +1,16 @@
+name = "bringit-verify-email"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Non-secret runtime config (the web API key is already public in the client).
+[vars]
+PROJECT_ID = "bringit-82469"
+AUTH_DOMAIN = "bringit-82469.firebaseapp.com"
+WEB_API_KEY = "AIzaSyBL9GCvLNBmo3hmQx3aNTly9L4TkfJDpKo"
+CONTINUE_URL = "https://bringit-82469.web.app/home"
+SENDER_NAME = "BRINGIT"
+# Gmail works out of the box (465 + app password). Swap these for any SMTP
+# provider you have.
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = "465"
+SMTP_SECURE = "true"

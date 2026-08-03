@@ -7,3 +7,9 @@ dist-ssr
 .env.*.local
 .DS_Store
 *.log
+
+# Secrets & local tooling
+*.firebase-adminsdk-*.json
+.firebase/
+
+bringit-82469-firebase-adminsdk-fbsvc-07d15bbd11.json
