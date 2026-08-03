@@ -24,7 +24,7 @@ export default function RiderFeed() {
     .filter((o) => filter === 'All' || o.shops.includes(filter));
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div>
         <h1 className="font-pixel text-[13px] text-cream">OPEN FEED</h1>
         <p className="font-crt text-fade text-lg">

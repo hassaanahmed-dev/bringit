@@ -8,7 +8,7 @@ export default function PixelCard({ children, className = '', tone = 'panel', as
   return (
     <Tag
       className={[
-        'pixel-border pixel-shadow p-4',
+        'pixel-border pixel-shadow p-3 sm:p-4',
         tones[tone],
         className,
       ]

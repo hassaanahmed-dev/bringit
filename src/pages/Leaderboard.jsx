@@ -28,7 +28,7 @@ export default function Leaderboard() {
   const myIndex = all.findIndex((r) => r.uid === user.uid);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div>
         <h1 className="font-pixel text-[13px] text-cream">CAMPUS LEADERBOARD</h1>
         <p className="font-crt text-fade text-lg">
@@ -78,7 +78,7 @@ export default function Leaderboard() {
             >
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-10 h-10 shrink-0 flex items-center justify-center font-pixel text-sm border-2 border-black ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center font-pixel text-xs sm:text-sm border-2 border-black ${
                     i < 3 ? 'bg-gold text-black' : 'bg-panel-2 text-fade'
                   }`}
                 >
@@ -86,7 +86,7 @@ export default function Leaderboard() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-pixel text-[10px] text-cream truncate">
+                    <span className="font-pixel text-[9px] sm:text-[10px] text-cream truncate">
                       {r.name.toUpperCase()}
                     </span>
                     {isMe && <span className="font-pixel text-[7px] text-gold border-2 border-gold px-1 py-0.5">YOU</span>}
@@ -102,7 +102,7 @@ export default function Leaderboard() {
                   className="h-3 border-2 border-black"
                   style={{
                     backgroundColor: r.rank.color,
-                    width: `${Math.max(6, (r.count / topCount) * 70)}px`,
+                    width: `${Math.max(6, (r.count / topCount) * 50)}px`,
                   }}
                   title={r.rank.name}
                 />

@@ -16,7 +16,7 @@ export default function QuestTracker({ status }) {
   }
 
   return (
-    <div className="pixel-border pixel-shadow bg-panel-2 p-4">
+    <div className="pixel-border pixel-shadow bg-panel-2 p-3 sm:p-4">
       <div className="font-pixel text-[9px] text-fade mb-4">DELIVERY QUEST</div>
       <div className="relative">
         <div
@@ -42,7 +42,7 @@ export default function QuestTracker({ status }) {
             return (
               <div key={stage} className="flex flex-col items-center gap-2">
                 <div
-                  className={`w-9 h-9 flex items-center justify-center font-pixel text-sm border-2 border-black ${color}`}
+                  className={`w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center font-pixel text-xs sm:text-sm border-2 border-black ${color}`}
                 >
                   {STAGE_GLYPHS[i]}
                 </div>

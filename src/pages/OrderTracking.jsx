@@ -80,7 +80,7 @@ export default function OrderTracking() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-pixel text-[13px] text-cream">TRACK ORDER</h1>
@@ -163,8 +163,8 @@ export default function OrderTracking() {
         <PixelCard tone="highlight">
           <div className="font-pixel text-[10px] text-gold mb-2">YOUR RIDER</div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <span className="font-pixel text-[12px] text-cream">{order.riderName.toUpperCase()}</span>
-            <div className="flex gap-2">
+            <span className="font-pixel text-[11px] sm:text-[12px] text-cream">{order.riderName.toUpperCase()}</span>
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => navigate(ROUTES.CHAT(order.id))}
                 className="font-pixel text-[10px] text-leaf border-2 border-leaf px-2 py-1.5 cursor-pointer"

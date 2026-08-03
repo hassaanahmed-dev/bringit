@@ -27,7 +27,7 @@ export default function Home() {
       color: 'bg-brand',
       desc: 'Order from campus shops, track your rider live.',
       cta: 'PLACE AN ORDER',
-      glyphChar: '▤',
+      glyphChar: '🍔',
     },
     {
       to: ROUTES.RIDER_FEED,
@@ -35,12 +35,12 @@ export default function Home() {
       color: 'bg-sky',
       desc: 'Grab open orders, earn delivery fees, rank up.',
       cta: 'OPEN THE FEED',
-      glyphChar: '◉',
+      glyphChar: '🛵',
     },
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div>
         <h1 className="font-pixel text-[14px] text-cream">
           HEY, <span className="text-brand">{user.name.toUpperCase().split(' ')[0]}</span>!
@@ -48,7 +48,7 @@ export default function Home() {
         <p className="font-crt text-fade text-lg">Ready for today's campus quests?</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
         {roles.map((r) => (
           <button key={r.title} onClick={() => navigate(r.to)} className="text-left cursor-pointer">
             <PixelCard tone="dark" className="hover:border-cream transition-colors h-full">
@@ -65,7 +65,7 @@ export default function Home() {
 
       <PixelCard tone="highlight">
         <div className="font-pixel text-[9px] text-fade mb-3">YOUR STATS</div>
-        <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <div>
             <div className="font-pixel text-[8px] text-fade mb-1">CUSTOMER</div>
             <PixelBadge orderCount={user.customerOrderCount} />

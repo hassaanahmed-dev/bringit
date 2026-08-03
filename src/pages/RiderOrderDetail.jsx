@@ -49,7 +49,7 @@ export default function RiderOrderDetail() {
   if (!order) return <div className="font-pixel text-[10px] text-fade py-10 text-center">LOADING MISSION...</div>;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-pixel text-[13px] text-cream">MISSION BRIEF</h1>

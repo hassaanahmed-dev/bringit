@@ -13,7 +13,7 @@ export default function Splash() {
   };
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center px-6 scanlines relative">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 scanlines relative safe-x">
       <div className="absolute inset-0 pointer-events-none opacity-[0.07] bg-[repeating-linear-gradient(0deg,#fff_0_1px,transparent_1px_5px),repeating-linear-gradient(90deg,#fff_0_1px,transparent_1px_5px)]" />
 
       <div className="text-center relative z-10 w-full max-w-sm">
@@ -39,10 +39,10 @@ export default function Splash() {
           </div>
         </div>
 
-        <div className="font-pixel text-4xl text-cream leading-tight mb-1">
+        <div className="font-pixel text-3xl sm:text-4xl text-cream leading-tight mb-1">
           BRING<span className="text-brand">IT</span>
         </div>
-        <div className="font-crt text-2xl text-fade mb-8">
+        <div className="font-crt text-xl sm:text-2xl text-fade mb-6 sm:mb-8">
           Food from campus shops, delivered by students like you.
         </div>
 
@@ -55,7 +55,7 @@ export default function Splash() {
           </PixelButton>
         </div>
 
-        <div className="mt-8 flex justify-center gap-5 text-fade">
+        <div className="mt-6 sm:mt-8 flex flex-wrap justify-center gap-3 sm:gap-5 text-fade">
           <span className="font-pixel text-[8px] text-leaf">P2P DELIVERY</span>
           <span className="font-pixel text-[8px] text-sky">LIVE TRACKING</span>
           <span className="font-pixel text-[8px] text-gold">RANK UP</span>

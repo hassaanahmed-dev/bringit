@@ -14,11 +14,11 @@ export default function PixelModal({ open, title, children, onClose, footer }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm bg-panel border-4 border-cream shadow-[8px_8px_0_rgba(0,0,0,0.8)] step-in"
+        className="w-full sm:max-w-sm bg-panel border-4 border-cream shadow-[8px_8px_0_rgba(0,0,0,0.8)] step-in sm:rounded-none safe-bottom"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -37,8 +37,8 @@ export default function PixelModal({ open, title, children, onClose, footer }) {
             )}
           </div>
         )}
-        <div className="p-5">{children}</div>
-        {footer && <div className="px-5 pb-5">{footer}</div>}
+        <div className="p-4 sm:p-5">{children}</div>
+        {footer && <div className="px-4 pb-4 sm:px-5 sm:pb-5">{footer}</div>}
       </div>
     </div>
   );
