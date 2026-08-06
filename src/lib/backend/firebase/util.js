@@ -1,4 +1,5 @@
 import { getRank } from '../../rank';
+import { ORDER_EXPIRY_MS } from '../../constants';
 
 export function toMs(ts) {
   if (!ts) return 0;
@@ -10,11 +11,17 @@ export function toMs(ts) {
 
 export function mapOrder(doc) {
   const data = doc.data();
+  const createdAt = toMs(data.createdAt);
+  // Base expiry on the SERVER timestamp so every device (customer, rider, feed)
+  // shows the same countdown regardless of local clock skew. The stored
+  // expiresAt field is only used as a fallback for legacy docs.
+  const storedExpiry = toMs(data.expiresAt);
   return {
     ...data,
     id: doc.id,
-    createdAt: toMs(data.createdAt),
+    createdAt,
     updatedAt: toMs(data.updatedAt),
+    expiresAt: createdAt ? createdAt + ORDER_EXPIRY_MS : storedExpiry,
   };
 }
 

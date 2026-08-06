@@ -9,16 +9,23 @@ export default function Leaderboard() {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [all, setAll] = useState([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const unsub = leaderboard.listenLeaderboard({ role, limit: 10 }, (list) => setRows(list));
     let active = true;
-    leaderboard.getAllLeaderboard({ role }).then((list) => {
-      if (active) {
-        setAll(list);
-        setTotal(list.length);
-      }
-    });
+    setError(false);
+    leaderboard
+      .getAllLeaderboard({ role })
+      .then((list) => {
+        if (active) {
+          setAll(list);
+          setTotal(list.length);
+        }
+      })
+      .catch(() => {
+        if (active) setError(true);
+      });
     return () => {
       active = false;
       unsub();
@@ -63,7 +70,16 @@ export default function Leaderboard() {
         </button>
       </div>
 
-      {rows.length === 0 && (
+      {error && (
+        <PixelCard tone="dark" className="border-danger">
+          <div className="font-pixel text-[11px] text-danger mb-2">COULD NOT LOAD RANKINGS</div>
+          <p className="font-crt text-fade text-lg">
+            Check your connection and come back to see the leaderboard.
+          </p>
+        </PixelCard>
+      )}
+
+      {rows.length === 0 && !error && (
         <PixelCard>
           <p className="font-crt text-fade text-xl text-center py-4">No ranked players yet.</p>
         </PixelCard>

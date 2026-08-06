@@ -1,5 +1,5 @@
 import { readDb, writeDb, uid, on } from './store';
-import { ORDER_STATUS } from '../constants';
+import { ORDER_STATUS, ORDER_EXPIRY_MS } from '../constants';
 import { getRank } from '../rank';
 import { notify } from './notifications';
 
@@ -43,6 +43,13 @@ export async function createOrder({
     riderId: null,
     riderName: null,
     riderPhone: null,
+    paidAmount: null,
+    collectedAmount: null,
+    paymentConfirmed: false,
+    location: null,
+    departedAt: null,
+    etaMinutes: null,
+    expiresAt: now() + ORDER_EXPIRY_MS,
     rated: false,
     rating: null,
     createdAt: now(),
@@ -61,12 +68,16 @@ export function listenOrder(orderId, cb, onError) {
   return on('dbchange', () => cb(getOrderSync(orderId)));
 }
 
-export function listenOpenOrders(cb) {
+export function listenOpenOrders(cb, onError) {
   const snapshot = () =>
     Object.values(orderMap())
       .filter((o) => o.status === ORDER_STATUS.OPEN)
       .sort((a, b) => a.createdAt - b.createdAt);
-  cb(snapshot());
+  try {
+    cb(snapshot());
+  } catch (e) {
+    onError?.(e);
+  }
   return on('dbchange', () => cb(snapshot()));
 }
 
@@ -85,11 +96,22 @@ export async function getRiderEarnings(riderId, { page = 0, pageSize = 20 } = {}
     .filter((o) => o.riderId === riderId && o.status === ORDER_STATUS.DELIVERED)
     .sort((a, b) => b.updatedAt - a.updatedAt);
   const total = all.reduce((sum, o) => sum + o.deliveryFee, 0);
+  const paidTotal = all.reduce((sum, o) => sum + (o.paidAmount || 0), 0);
+  const collectedTotal = all.reduce((sum, o) => sum + (o.collectedAmount || 0), 0);
   return {
     total,
+    paidTotal,
+    collectedTotal,
     orders: all.slice(page * pageSize, (page + 1) * pageSize),
     hasMore: (page + 1) * pageSize < all.length,
   };
+}
+
+export async function confirmPayment(orderId) {
+  const order = getOrderSync(orderId);
+  if (!order) return { ok: false, error: 'NOT_FOUND' };
+  if (order.status !== ORDER_STATUS.DELIVERED) return { ok: false, error: 'INVALID' };
+  return patchOrder(orderId, { paymentConfirmed: true });
 }
 
 function patchOrder(orderId, patch) {
@@ -116,6 +138,12 @@ export async function acceptOrder(orderId, rider) {
       error: 'TAKEN',
       message: 'THIS ORDER WAS JUST TAKEN BY ANOTHER RIDER',
     };
+  if (order.expiresAt && order.expiresAt < now())
+    return {
+      ok: false,
+      error: 'EXPIRED',
+      message: 'THIS ORDER HAS EXPIRED — NO ONE TOOK IT IN TIME',
+    };
   order.status = ORDER_STATUS.ACCEPTED;
   order.riderId = rider.uid;
   order.riderName = rider.name;
@@ -132,27 +160,66 @@ export async function acceptOrder(orderId, rider) {
   return { ok: true, order };
 }
 
-export async function markPaid(orderId) {
+export async function expireOrder(orderId) {
+  const order = getOrderSync(orderId);
+  if (!order) return { ok: false, error: 'NOT_FOUND' };
+  if (order.status !== ORDER_STATUS.OPEN || (order.expiresAt && order.expiresAt > now()))
+    return { ok: false, error: 'INVALID' };
+  return patchOrder(orderId, { status: ORDER_STATUS.EXPIRED });
+}
+
+export async function markPaid(orderId, paidAmount = 0) {
+  const amount = Math.max(0, Number(paidAmount) || 0);
   const order = getOrderSync(orderId);
   if (!order || order.status !== ORDER_STATUS.ACCEPTED) return { ok: false, error: 'INVALID' };
-  const res = patchOrder(orderId, { status: ORDER_STATUS.PAID_AT_SHOP });
+  const res = patchOrder(orderId, { status: ORDER_STATUS.PAID_AT_SHOP, paidAmount: amount });
   if (res.ok) {
+    const fee = order.deliveryFee || 0;
     notify(order.customerId, {
       type: 'paid',
       title: 'PAID AT SHOP',
-      body: 'Your rider has paid and is on the way to you.',
+      body: `Keep Rs ${amount + fee} ready — food Rs ${amount} + delivery Rs ${fee}.`,
       orderId,
     });
   }
   return res;
 }
 
-export async function deliver(orderId) {
+export async function leaveShop(orderId, etaMinutes = 8) {
+  const minutes = Math.min(60, Math.max(1, Math.round(Number(etaMinutes) || 8)));
+  const order = getOrderSync(orderId);
+  if (!order || order.status !== ORDER_STATUS.PAID_AT_SHOP)
+    return { ok: false, error: 'INVALID', message: 'ORDER IS NOT READY' };
+  const res = patchOrder(orderId, { departedAt: now(), etaMinutes: minutes });
+  if (res.ok) {
+    notify(order.customerId, {
+      type: 'enroute',
+      title: 'RIDER EN ROUTE',
+      body: `Your rider has left the shop. Arriving in ~${minutes} min.`,
+      orderId,
+    });
+  }
+  return res;
+}
+
+export async function updateLocation(orderId, { lat, lng }) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return { ok: false };
+  const order = getOrderSync(orderId);
+  if (!order) return { ok: false, error: 'NOT_FOUND' };
+  return patchOrder(orderId, { location: { lat, lng } });
+}
+
+export async function deliver(orderId, collectedAmount) {
   const db = readDb();
   const order = db.orders[orderId];
   if (!order) return { ok: false, error: 'NOT_FOUND' };
   if (order.status !== ORDER_STATUS.PAID_AT_SHOP)
     return { ok: false, error: 'INVALID', message: 'ORDER IS NOT READY TO DELIVER' };
+
+  order.collectedAmount =
+    typeof collectedAmount === 'number'
+      ? Math.max(0, Math.round(collectedAmount))
+      : (order.paidAmount || 0) + (order.deliveryFee || 0);
 
   const prevCustomerCount = order.customerOrderCount;
   const prevRiderCount = order.riderOrderCount;

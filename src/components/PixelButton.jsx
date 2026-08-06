@@ -11,7 +11,7 @@ export default function PixelButton({
 }) {
   const variants = {
     primary: 'bg-brand text-black border-black hover:bg-[#ff5c84]',
-    sky: 'bg-sky text-black border-black hover:bg-[#63c7ff]',
+    sky: 'bg-sky text-black border-black hover:bg-[#00aab8]',
     leaf: 'bg-leaf text-black border-black hover:bg-[#6cf09a]',
     gold: 'bg-gold text-black border-black hover:bg-[#ffd77a]',
     danger: 'bg-danger text-black border-black hover:bg-[#ff7a88]',

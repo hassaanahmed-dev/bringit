@@ -22,8 +22,13 @@ export default function Notifications() {
   const { list } = useNotifications(user.uid);
 
   const open = (n) => {
-    notifications.markRead(user.uid, n.id);
-    if (n.orderId) navigate(ROUTES.ORDER(n.orderId));
+    notifications.markRead(user.uid, n.id).catch(() => {});
+    if (!n.orderId) return;
+    // Rider-targeted alerts point at rider screens; the tracking page is
+    // customer-only (it returns ACCESS DENIED for riders).
+    if (n.type === 'rating') navigate(ROUTES.EARNINGS);
+    else if (n.type === 'customer_cancel') navigate(ROUTES.RIDER_FEED);
+    else navigate(ROUTES.ORDER(n.orderId));
   };
 
   return (
@@ -34,10 +39,10 @@ export default function Notifications() {
           <p className="font-crt text-fade text-lg">Campus quest alerts.</p>
         </div>
         <div className="flex gap-2">
-          <PixelButton small variant="ghost" onClick={() => notifications.markAllRead(user.uid)}>
+          <PixelButton small variant="ghost" onClick={() => notifications.markAllRead(user.uid).catch(() => {})}>
             Read All
           </PixelButton>
-          <PixelButton small variant="outline" onClick={() => notifications.clearNotifications(user.uid)}>
+          <PixelButton small variant="outline" onClick={() => notifications.clearNotifications(user.uid).catch(() => {})}>
             Clear
           </PixelButton>
         </div>

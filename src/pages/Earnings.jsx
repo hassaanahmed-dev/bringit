@@ -15,7 +15,9 @@ export default function Earnings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
-  const [state, setState] = useState({ orders: [], total: 0, hasMore: false });
+  const [state, setState] = useState({
+    orders: [], total: 0, paidTotal: 0, collectedTotal: 0, hasMore: false,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reload, setReload] = useState(0);
@@ -27,7 +29,10 @@ export default function Earnings() {
       .getRiderEarnings(user.uid, { page, pageSize: PAGE_SIZE })
       .then((res) => {
         if (active) {
-          setState(res);
+          setState((prev) => ({
+            ...res,
+            orders: page === 0 ? res.orders : [...prev.orders, ...res.orders],
+          }));
           setError(false);
         }
       })
@@ -40,7 +45,8 @@ export default function Earnings() {
     return () => { active = false; };
   }, [user.uid, page, reload]);
 
-  const { orders: list, total, hasMore } = state;
+  const { orders: list, total, paidTotal, collectedTotal, hasMore } = state;
+  const discrepancy = (collectedTotal || 0) - ((paidTotal || 0) + total);
 
   if (loading && list.length === 0) return <Spinner label="TALLYING EARNINGS..." />;
 
@@ -64,6 +70,37 @@ export default function Earnings() {
         <h1 className="font-pixel text-[13px] text-cream">EARNINGS</h1>
         <p className="font-crt text-fade text-lg">Your delivered quests, in rupees.</p>
       </div>
+
+      <PixelCard tone="highlight">
+        <div className="font-pixel text-[9px] text-fade mb-2">SHIFT SETTLEMENT</div>
+        <div className="flex flex-col gap-1.5 font-crt text-lg">
+          <div className="flex justify-between">
+            <span className="text-fade">PAID TO SHOPS</span>
+            <span className="text-cream">Rs {(paidTotal || 0).toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-fade">COLLECTED FROM CUSTOMERS</span>
+            <span className="text-cream">Rs {(collectedTotal || 0).toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-fade">FEES EARNED</span>
+            <span className="text-gold">Rs {total.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between border-t-2 border-line pt-1.5 mt-1">
+            <span className="text-fade">DISCREPANCY</span>
+            <span
+              className={`font-pixel text-[10px] ${
+                discrepancy === 0 ? 'text-leaf' : 'text-danger'
+              }`}
+            >
+              {discrepancy === 0 ? '✓ BALANCED' : `Rs ${discrepancy.toLocaleString()}`}
+            </span>
+          </div>
+          <p className="font-crt text-base text-fade mt-1">
+            Collected should equal paid + fees. Any difference is what's missing or extra.
+          </p>
+        </div>
+      </PixelCard>
 
       <PixelCard tone="highlight">
         <div className="font-pixel text-[9px] text-fade mb-2">TOTAL EARNED</div>

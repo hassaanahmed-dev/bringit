@@ -118,8 +118,15 @@ export function onAuthStateChange(cb, onError) {
         cb(null);
         return;
       }
-      const profile = await fetchProfile(u.uid);
-      cb(toAuthUser(u, profile));
+      try {
+        const profile = await fetchProfile(u.uid);
+        cb(toAuthUser(u, profile));
+      } catch (e) {
+        // A transient profile-read failure must not block startup — without
+        // this the app would sit on the BOOTING... spinner forever.
+        console.warn('[auth] profile fetch failed', e?.code || e);
+        cb(toAuthUser(u, null));
+      }
     },
     async (error) => {
       console.warn('[auth] session revoked', error?.code);
@@ -245,8 +252,12 @@ export async function simulateVerification() {
 
 export async function refreshVerificationStatus() {
   if (!auth?.currentUser) return false;
-  await reload(auth.currentUser);
-  return auth.currentUser.emailVerified;
+  try {
+    await reload(auth.currentUser);
+    return auth.currentUser.emailVerified;
+  } catch {
+    return false;
+  }
 }
 
 export async function updateProfile(patch) {

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 
-export function Stars({ value, onChange, max = 5, size = 'lg' }) {
+export function Stars({ value, onChange, max = 5, size = 'lg', disabled = false }) {
   const [hover, setHover] = useState(null);
   const active = hover ?? value ?? 0;
   const px = size === 'lg' ? 'text-3xl' : size === 'sm' ? 'text-lg' : 'text-xl';
+  const interactive = onChange && !disabled;
   return (
-    <div className="flex gap-2" role={onChange ? 'radiogroup' : 'img'}>
+    <div className="flex gap-2" role={interactive ? 'radiogroup' : 'img'}>
       {Array.from({ length: max }, (_, i) => {
         const n = i + 1;
         const filled = n <= active;
@@ -13,12 +14,12 @@ export function Stars({ value, onChange, max = 5, size = 'lg' }) {
           <span
             key={n}
             className={`${px} ${filled ? 'text-gold stars-glow' : 'text-fade/40'} ${
-              onChange ? 'cursor-pointer select-none' : ''
+              interactive ? 'cursor-pointer select-none' : ''
             }`}
-            onClick={() => onChange?.(n)}
-            onMouseEnter={() => onChange && setHover(n)}
-            onMouseLeave={() => onChange && setHover(null)}
-            aria-label={onChange ? `Rate ${n} of ${max}` : undefined}
+            onClick={() => interactive && onChange(n)}
+            onMouseEnter={() => interactive && setHover(n)}
+            onMouseLeave={() => interactive && setHover(null)}
+            aria-label={interactive ? `Rate ${n} of ${max}` : undefined}
           >
             {filled ? '★' : '☆'}
           </span>

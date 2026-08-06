@@ -10,7 +10,7 @@ const TABS = [
   { to: ROUTES.HOME, glyph: '▣', label: 'HOME' },
   { to: ROUTES.NEW_ORDER, glyph: '+', label: 'ORDER', primary: true },
   { to: ROUTES.RIDER_FEED, glyph: '◉', label: 'FEED' },
-  { to: ROUTES.ORDER_HISTORY, glyph: '▤', label: 'LOG' },
+  { to: ROUTES.ORDER_HISTORY, glyph: '▤', label: 'ORDERS' },
   { to: ROUTES.PROFILE, glyph: '☺', label: 'ME' },
 ];
 
