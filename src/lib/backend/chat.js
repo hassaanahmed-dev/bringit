@@ -33,7 +33,7 @@ export async function sendMessage(orderId, sender, text) {
   return { ok: true };
 }
 
-export function listenMessages(orderId, cb) {
+export function listenMessages(orderId, cb, onError) {
   cb(messagesFor(orderId));
   return on('dbchange', () => cb(messagesFor(orderId)));
 }

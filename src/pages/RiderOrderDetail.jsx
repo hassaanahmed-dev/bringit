@@ -20,6 +20,7 @@ export default function RiderOrderDetail() {
   const [order, setOrder] = useState(null);
   const [busy, setBusy] = useState(false);
   const [takenMsg, setTakenMsg] = useState(false);
+  const [takenLeft, setTakenLeft] = useState(30);
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
@@ -29,28 +30,49 @@ export default function RiderOrderDetail() {
       (o) => {
         setOrder(o);
         if (o) setLoadError(false);
-        if (o && o.status !== ORDER_STATUS.OPEN) setTakenMsg(true);
+        if (o && (o.status === ORDER_STATUS.ACCEPTED || o.status === ORDER_STATUS.PAID_AT_SHOP) && o.riderId !== user.uid) setTakenMsg(true);
       },
       () => setLoadError(true),
     );
-  }, [id]);
+  }, [id, user.uid]);
+
+  useEffect(() => {
+    if (!takenMsg) return;
+    const t = setInterval(() => {
+      setTakenLeft((s) => {
+        if (s <= 1) {
+          clearInterval(t);
+          navigate(ROUTES.RIDER_FEED, { replace: true });
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [takenMsg, navigate]);
 
   const accept = async () => {
     setBusy(true);
-    const res = await orders.acceptOrder(order.id, {
-      uid: user.uid,
-      name: user.name,
-      phone: user.phone,
-      orderCount: user.riderOrderCount,
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setTakenMsg(true);
-      toast(res.message || 'Could not take this order', 'error');
-      return;
+    try {
+      const res = await orders.acceptOrder(order.id, {
+        uid: user.uid,
+        name: user.name,
+        phone: user.phone,
+        orderCount: user.riderOrderCount,
+      });
+      if (!res.ok) {
+        setTakenMsg(true);
+        toast(res.message || 'Could not take this order', 'error');
+        return;
+      }
+      toast('Order accepted! Head to the shops.', 'success');
+      navigate(ROUTES.ACTIVE_ORDER(order.id));
+    } catch (e) {
+      console.warn('[rider] accept failed', e);
+      toast('Could not take this order. Try again.', 'error');
+    } finally {
+      setBusy(false);
     }
-    toast('Order accepted! Head to the shops.', 'success');
-    navigate(ROUTES.ACTIVE_ORDER(order.id));
   };
 
   if (loadError && !order) {
@@ -84,15 +106,33 @@ export default function RiderOrderDetail() {
         </button>
       </div>
 
-      {takenMsg && order.status !== ORDER_STATUS.OPEN && (
+      {order.status === ORDER_STATUS.EXPIRED && (
+        <PixelCard tone="dark" className="border-danger">
+          <div className="font-pixel text-[11px] text-danger mb-2">ORDER EXPIRED</div>
+          <p className="font-crt text-fade text-lg mb-3">
+            No rider took this one in time — it's gone from the pool.
+          </p>
+          <PixelButton block variant="sky" onClick={() => navigate(ROUTES.RIDER_FEED)}>
+            Back to Feed
+          </PixelButton>
+        </PixelCard>
+      )}
+
+      {takenMsg && order.status !== ORDER_STATUS.OPEN && order.riderId !== user.uid && (
         <PixelCard tone="dark" className="border-danger">
           <div className="font-pixel text-[11px] text-danger mb-2">ORDER ALREADY TAKEN</div>
           <p className="font-crt text-fade text-lg mb-3">
-            This order was just taken by another rider. Back to the pool!
+            This order was just taken by another rider. Returning to the feed in{' '}
+            <span className="text-cream">{takenLeft}s</span>...
           </p>
-          <PixelButton block variant="sky" onClick={() => navigate(ROUTES.RIDER_FEED)}>
-            Return to Feed
-          </PixelButton>
+          <div className="flex flex-col gap-2">
+            <PixelButton block variant="sky" onClick={() => navigate(ROUTES.RIDER_FEED)}>
+              Back to Feed Now
+            </PixelButton>
+            <PixelButton block variant="ghost" onClick={() => navigate(ROUTES.HOME)}>
+              Back to Home
+            </PixelButton>
+          </div>
         </PixelCard>
       )}
 

@@ -1,7 +1,7 @@
 // Pixel-styled HTML for the verification email, matching the BRINGIT website
-// theme (ink/panel/line/brand). Email clients need inline styles and tables —
-// no flexbox, no CSS files. Layout is fluid so it scales and stays centered
-// on phones.
+// neon theme (black / neon cyan / neon pink). Email clients need inline
+// styles and tables — no flexbox, no CSS files. Layout is fluid so it scales
+// and stays centered on phones.
 
 function escapeHtml(value) {
   return String(value)
@@ -38,13 +38,13 @@ export function createVerificationEmailHtml({ email, link, name }) {
       }
     </style>
   </head>
-  <body style="margin:0;padding:0;background:#0d0d14;font-family:Verdana,Geneva,Tahoma,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#0d0d14" style="border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;">
+  <body style="margin:0;padding:0;background:#000000;font-family:Verdana,Geneva,Tahoma,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#000000" style="border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;">
       <tr>
         <td align="center" style="padding:40px 12px;">
           <table role="presentation" width="520" class="email-container" cellspacing="0" cellpadding="0" border="0" align="center" style="width:520px;max-width:100%;border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;">
             <tr>
-              <td bgcolor="#171720" style="background:#171720;border:3px solid #34344a;padding:0;">
+              <td bgcolor="#000000" style="background:#000000;border:3px solid #3a4150;padding:0;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;">
                   <tr>
                     <td class="pad" style="padding:32px 28px 8px 28px;">
@@ -55,24 +55,24 @@ export function createVerificationEmailHtml({ email, link, name }) {
                               src="https://bringit-82469.web.app/images/logo.png"
                               alt="BRINGIT"
                               width="110"
-                              style="display:block;width:110px;max-width:100%;height:auto;border:3px solid #000000;image-rendering:pixelated;"
+                              style="display:block;width:110px;max-width:100%;height:auto;border:3px solid #3a4150;image-rendering:pixelated;"
                             />
                           </td>
                         </tr>
                       </table>
-                      <p class="hi" style="margin:0 0 6px 0;font-size:16px;font-weight:bold;color:#efece1;text-align:center;line-height:1.6;">
+                      <p class="hi" style="margin:0 0 6px 0;font-size:16px;font-weight:bold;color:#f2f2f6;text-align:center;line-height:1.6;">
                         HEY ${firstName.toUpperCase()},
                       </p>
                       <p class="body-copy" style="margin:0 0 16px 0;font-size:13px;color:#9aa0b4;text-align:center;line-height:1.6;">
                         Confirm your FAST email to activate your player and enter campus.
                       </p>
-                      <p style="margin:16px 0 24px 0;font-size:14px;color:#efece1;text-align:center;background:#1f1f2b;border:2px solid #34344a;padding:12px 8px;font-weight:bold;word-break:break-all;">
+                      <p style="margin:16px 0 24px 0;font-size:14px;color:#f2f2f6;text-align:center;background:#0a0a0a;border:2px solid #3a4150;padding:12px 8px;font-weight:bold;word-break:break-all;">
                         ${safeEmail}
                       </p>
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;border-collapse:collapse;">
                         <tr>
                           <td align="center">
-                            <a href="${safeLink}" class="btn" style="display:inline-block;background:#ff2e63;color:#000000;border:3px solid #000000;padding:14px 26px;font-size:14px;font-weight:bold;text-decoration:none;letter-spacing:1px;text-align:center;">
+                            <a href="${safeLink}" class="btn" style="display:inline-block;background:#ff0080;color:#000000;border:3px solid #000000;padding:14px 26px;font-size:14px;font-weight:bold;text-decoration:none;letter-spacing:1px;text-align:center;">
                               VERIFY MY EMAIL
                             </a>
                           </td>

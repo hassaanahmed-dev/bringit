@@ -5,18 +5,18 @@
   --font-pixel: "Press Start 2P", "Courier New", monospace;
   --font-crt: "VT323", "Consolas", monospace;
 
-  --color-ink: #0d0d14;
-  --color-panel: #171720;
-  --color-panel-2: #1f1f2b;
-  --color-line: #34344a;
-  --color-cream: #efece1;
+  --color-ink: #000000;
+  --color-panel: #000000;
+  --color-panel-2: #0a0a0a;
+  --color-line: #3a4150;
+  --color-cream: #f2f2f6;
   --color-fade: #9aa0b4;
-  --color-brand: #ff2e63;
-  --color-brand-dark: #b3123f;
-  --color-sky: #38b6ff;
+  --color-brand: #ff0080;
+  --color-brand-dark: #c00061;
+  --color-sky: #00c8d6;
   --color-leaf: #3ddc84;
   --color-gold: #ffc857;
-  --color-royal: #b06cff;
+  --color-royal: #ff0080;
   --color-danger: #ff4d5e;
 }
 
@@ -45,7 +45,7 @@ html, body {
   overflow-x: hidden;
 }
 
-/* retro scanline overlay */
+/* retro scanline overlay — faint cyan tint */
 .scanlines::before {
   content: "";
   position: fixed;
@@ -54,9 +54,9 @@ html, body {
   z-index: 90;
   background: repeating-linear-gradient(
     to bottom,
-    rgba(0,0,0,0) 0px,
-    rgba(0,0,0,0) 3px,
-    rgba(0,0,0,0.16) 4px
+    rgba(0,255,255,0) 0px,
+    rgba(0,255,255,0) 3px,
+    rgba(0,200,214,0.05) 4px
   );
 }
 

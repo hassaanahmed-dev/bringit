@@ -15,7 +15,7 @@ export default function Splash() {
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 scanlines relative safe-x">
-      <div className="absolute inset-0 pointer-events-none opacity-[0.07] bg-[repeating-linear-gradient(0deg,#fff_0_1px,transparent_1px_5px),repeating-linear-gradient(90deg,#fff_0_1px,transparent_1px_5px)]" />
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05] bg-[repeating-linear-gradient(0deg,#00c8d6_0_1px,transparent_1px_5px),repeating-linear-gradient(90deg,#00c8d6_0_1px,transparent_1px_5px)]" />
 
       <div className="text-center relative z-10 w-full max-w-sm">
         <div className="font-pixel text-[10px] text-gold mb-6 step-in">

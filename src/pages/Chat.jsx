@@ -5,6 +5,7 @@ import PixelCard from '../components/PixelCard';
 import PixelButton from '../components/PixelButton';
 import { chat, orders } from '../lib/backend';
 import { formatTime } from '../lib/rank';
+import { playMessage } from '../lib/sounds';
 import { ROUTES } from '../lib/routes';
 
 export default function Chat() {
@@ -15,6 +16,8 @@ export default function Chat() {
   const [order, setOrder] = useState(null);
   const [text, setText] = useState('');
   const [denied, setDenied] = useState(false);
+  const [chatError, setChatError] = useState(false);
+  const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -27,7 +30,13 @@ export default function Chat() {
         return;
       }
       off.push(orders.listenOrder(id, setOrder));
-      off.push(chat.listenMessages(id, setMessages));
+      off.push(
+        chat.listenMessages(
+          id,
+          setMessages,
+          () => active && setChatError(true),
+        ),
+      );
     }).catch(() => {
       if (!active) return;
       setDenied(true);
@@ -42,11 +51,24 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
 
+  const lastMsgId = useRef(null);
+  const historyLoaded = useRef(false);
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (last && last.id !== lastMsgId.current) {
+      lastMsgId.current = last.id;
+      if (historyLoaded.current && last.senderId !== user.uid) playMessage();
+    }
+    if (messages.length > 0) historyLoaded.current = true;
+  }, [messages, user.uid]);
+
   const otherName = order ? (order.customerId === user.uid ? order.riderName : order.customerName) : null;
 
   const send = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || sending) return;
+    setSending(true);
     const res = await chat.sendMessage(id, { uid: user.uid, name: user.name }, text);
+    setSending(false);
     if (res.ok) setText('');
   };
 
@@ -82,6 +104,14 @@ export default function Chat() {
       </div>
 
       <PixelCard className="flex-1 flex flex-col overflow-hidden !p-0">
+        {chatError && (
+          <div className="border-b-2 border-danger px-3 py-2">
+            <div className="font-pixel text-[9px] text-danger">CHAT CONNECTION ERROR</div>
+            <p className="font-crt text-fade text-lg">
+              Can't reach the thread. Check your connection and retry.
+            </p>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2" style={{ minHeight: 0 }}>
           {messages.length === 0 && (
             <div className="text-center my-auto">
@@ -132,8 +162,15 @@ export default function Chat() {
             maxLength={300}
             className="flex-1 min-w-0 bg-ink border-2 border-line px-2 sm:px-3 py-2 sm:py-2.5 text-cream font-crt text-lg outline-none focus:border-sky placeholder:text-fade/50 caret-brand blink-caret"
           />
-          <PixelButton onClick={send} disabled={!text.trim()}>
-            SEND
+          <PixelButton onClick={send} disabled={!text.trim() || sending}>
+            {sending ? (
+              <span className="inline-flex items-center justify-center gap-2 animate-pulse">
+                <span className="w-3 h-3 border-2 border-black/40 border-t-black animate-spin" />
+                SENDING...
+              </span>
+            ) : (
+              'SEND'
+            )}
           </PixelButton>
         </div>
       </PixelCard>

@@ -173,27 +173,27 @@ const EXPIRED_HTML = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Link expired — BRINGIT</title>
   </head>
-  <body style="margin:0;padding:0;background:#0d0d14;font-family:Verdana,Geneva,Tahoma,sans-serif;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#0d0d14" style="border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;">
+  <body style="margin:0;padding:0;background:#000000;font-family:Verdana,Geneva,Tahoma,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#000000" style="border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;">
       <tr>
         <td align="center" style="padding:48px 12px;">
           <table role="presentation" width="420" cellspacing="0" cellpadding="0" border="0" align="center" style="width:420px;max-width:100%;border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;">
             <tr>
-              <td bgcolor="#171720" style="background:#171720;border:3px solid #34344a;padding:0;">
+              <td bgcolor="#000000" style="background:#000000;border:3px solid #3a4150;padding:0;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
                   <tr>
                     <td style="padding:28px 20px;text-align:center;">
-                      <p style="margin:0 0 16px 0;font-size:20px;font-weight:bold;color:#ff2e63;letter-spacing:2px;">
-                        BRING<span style="color:#efece1;">IT</span>
+                      <p style="margin:0 0 16px 0;font-size:20px;font-weight:bold;color:#ff0080;letter-spacing:2px;">
+                        BRING<span style="color:#f2f2f6;">IT</span>
                       </p>
-                      <p style="margin:0 0 8px 0;font-size:16px;font-weight:bold;color:#efece1;">
+                      <p style="margin:0 0 8px 0;font-size:16px;font-weight:bold;color:#f2f2f6;">
                         THIS VERIFICATION LINK HAS EXPIRED
                       </p>
                       <p style="margin:0 0 20px 0;font-size:13px;color:#9aa0b4;line-height:1.6;">
                         Verification links only last 30 minutes. Log back in to BRINGIT and
                         tap "Resend Email" to get a fresh one.
                       </p>
-                      <p style="margin:0;font-size:12px;color:#34344a;">
+                      <p style="margin:0;font-size:12px;color:#9aa0b4;">
                         bringit-82469.web.app
                       </p>
                     </td>

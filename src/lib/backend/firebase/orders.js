@@ -14,7 +14,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { ORDER_STATUS } from '../../constants';
+import { ORDER_STATUS, ORDER_EXPIRY_MS } from '../../constants';
 import { getRank } from '../../rank';
 import { notify } from './notifications';
 import { mapOrder } from './util';
@@ -67,6 +67,13 @@ export async function createOrder({
     riderName: null,
     riderPhone: null,
     riderOrderCount: 0,
+    paidAmount: null,
+    collectedAmount: null,
+    paymentConfirmed: false,
+    location: null,
+    departedAt: null,
+    etaMinutes: null,
+    expiresAt: new Date(Date.now() + ORDER_EXPIRY_MS),
     rated: false,
     rating: null,
     createdAt: serverTimestamp(),
@@ -84,7 +91,12 @@ export function listenOrder(orderId, cb, onError) {
   return onSnapshot(
     doc(ordersRef, orderId),
     (snap) => {
-      cb(snap.exists() ? mapOrder(snap) : null);
+      try {
+        cb(snap.exists() ? mapOrder(snap) : null);
+      } catch (e) {
+        console.warn('[orders] order listener mapping failed', e);
+        onError?.(e);
+      }
     },
     (err) => {
       console.warn('[orders] listen failed', err?.code);
@@ -93,9 +105,20 @@ export function listenOrder(orderId, cb, onError) {
   );
 }
 
-export function listenOpenOrders(cb) {
+export function listenOpenOrders(cb, onError) {
   const q = query(ordersRef, where('status', '==', ORDER_STATUS.OPEN), orderBy('createdAt', 'asc'));
-  return onSnapshot(q, (snap) => cb(snap.docs.map(mapOrder)));
+  return onSnapshot(
+    q,
+    (snap) => {
+      try {
+        cb(snap.docs.map(mapOrder));
+      } catch (e) {
+        console.warn('[orders] feed listener mapping failed', e);
+        onError?.(e);
+      }
+    },
+    (err) => onError?.(err),
+  );
 }
 
 export async function getCustomerOrders(customerId, { page = 0, pageSize = 20 } = {}) {
@@ -122,13 +145,30 @@ export async function getRiderEarnings(riderId, { page = 0, pageSize = 20 } = {}
   );
   const snap = await getDocs(q);
   const all = snap.docs.map(mapOrder);
-  // Total must sum EVERY delivered order, not just the current page slice.
+  // Totals must sum EVERY delivered order, not just the current page slice.
   const total = all.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+  const paidTotal = all.reduce((sum, o) => sum + (o.paidAmount || 0), 0);
+  const collectedTotal = all.reduce((sum, o) => sum + (o.collectedAmount || 0), 0);
   return {
     total,
+    paidTotal,
+    collectedTotal,
     orders: all.slice(page * pageSize, (page + 1) * pageSize),
     hasMore: (page + 1) * pageSize < all.length,
   };
+}
+
+export async function confirmPayment(orderId) {
+  if (!db) return CONFIG_ERR;
+  try {
+    await updateDoc(doc(ordersRef, orderId), {
+      paymentConfirmed: true,
+      updatedAt: serverTimestamp(),
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.code || 'FAILED' };
+  }
 }
 
 export async function acceptOrder(orderId, rider) {
@@ -143,11 +183,19 @@ export async function acceptOrder(orderId, rider) {
         throw codeError('OWN_ORDER', 'THAT IS YOUR OWN ORDER — YOU CANNOT DELIVER IT');
       if (order.status !== ORDER_STATUS.OPEN)
         throw codeError('TAKEN', 'THIS ORDER WAS JUST TAKEN BY ANOTHER RIDER');
+      // Match the feed's countdown: expiry is createdAt + ORDER_EXPIRY_MS on the
+      // server clock, not the customer's local expiresAt stamp.
+      const createdMs = order.createdAt?.toMillis?.() || 0;
+      const expiryMs = createdMs
+        ? createdMs + ORDER_EXPIRY_MS
+        : (order.expiresAt?.toMillis?.() || 0);
+      if (expiryMs && expiryMs < Date.now())
+        throw codeError('EXPIRED', 'THIS ORDER HAS EXPIRED — NO ONE TOOK IT IN TIME');
       tx.update(orderRef, {
         status: ORDER_STATUS.ACCEPTED,
         riderId: rider.uid,
-        riderName: rider.name,
-        riderPhone: rider.phone,
+        riderName: rider.name || '',
+        riderPhone: rider.phone || '',
         riderOrderCount: rider.orderCount || 0,
         updatedAt: serverTimestamp(),
       });
@@ -155,39 +203,104 @@ export async function acceptOrder(orderId, rider) {
   } catch (e) {
     return { ok: false, error: e.code || 'FAILED', message: e.message };
   }
-  const order = await getOrder(orderId);
-  if (order) {
-    await safeNotify(order.customerId, {
-      type: 'accept',
-      title: 'RIDER FOUND',
-      body: `${rider.name} accepted your order #${orderId.slice(0, 6).toUpperCase()}`,
-      orderId,
-    });
-  }
-  return { ok: true, order };
+
+  // The transaction is committed — never block the rider's screen on the
+  // follow-up read/notification, otherwise a network blip freezes the accept
+  // button on "LOCKING IT IN...". Fire-and-forget with its own error guard.
+  getOrder(orderId)
+    .then((order) => {
+      if (order) {
+        return safeNotify(order.customerId, {
+          type: 'accept',
+          title: 'RIDER FOUND',
+          body: `${rider.name} accepted your order #${orderId.slice(0, 6).toUpperCase()}`,
+          orderId,
+        });
+      }
+      return null;
+    })
+    .catch((e) => console.warn('[orders] accept follow-up failed', e));
+
+  return { ok: true };
 }
 
-export async function markPaid(orderId) {
+export async function expireOrder(orderId) {
   if (!db) return CONFIG_ERR;
-  const orderRef = doc(ordersRef, orderId);
   try {
-    await updateDoc(orderRef, { status: ORDER_STATUS.PAID_AT_SHOP, updatedAt: serverTimestamp() });
+    await updateDoc(doc(ordersRef, orderId), {
+      status: ORDER_STATUS.EXPIRED,
+      updatedAt: serverTimestamp(),
+    });
+    return { ok: true };
   } catch (e) {
-    return { ok: false, error: 'INVALID', message: 'ORDER IS NOT READY' };
+    return { ok: false, error: e.code || 'FAILED' };
+  }
+}
+
+export async function leaveShop(orderId, etaMinutes = 8) {
+  if (!db) return CONFIG_ERR;
+  const minutes = Math.min(60, Math.max(1, Math.round(Number(etaMinutes) || 8)));
+  try {
+    await updateDoc(doc(ordersRef, orderId), {
+      departedAt: serverTimestamp(),
+      etaMinutes: minutes,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (e) {
+    return { ok: false, error: e.code || 'FAILED', message: 'COULD NOT UPDATE ORDER' };
   }
   const order = await getOrder(orderId);
   if (order) {
     await safeNotify(order.customerId, {
-      type: 'paid',
-      title: 'PAID AT SHOP',
-      body: 'Your rider has paid and is on the way to you.',
+      type: 'enroute',
+      title: 'RIDER EN ROUTE',
+      body: `Your rider has left the shop. Arriving in ~${minutes} min.`,
       orderId,
     });
   }
   return { ok: true };
 }
 
-export async function deliver(orderId) {
+export async function updateLocation(orderId, { lat, lng }) {
+  if (!db || typeof lat !== 'number' || typeof lng !== 'number') return { ok: false };
+  try {
+    await updateDoc(doc(ordersRef, orderId), {
+      location: { lat, lng },
+      updatedAt: serverTimestamp(),
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.code || 'FAILED' };
+  }
+}
+
+export async function markPaid(orderId, paidAmount = 0) {
+  if (!db) return CONFIG_ERR;
+  const amount = Math.max(0, Number(paidAmount) || 0);
+  const orderRef = doc(ordersRef, orderId);
+  try {
+    await updateDoc(orderRef, {
+      status: ORDER_STATUS.PAID_AT_SHOP,
+      paidAmount: amount,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (e) {
+    return { ok: false, error: 'INVALID', message: 'ORDER IS NOT READY' };
+  }
+  const order = await getOrder(orderId);
+  if (order) {
+    const fee = order.deliveryFee || 0;
+    await safeNotify(order.customerId, {
+      type: 'paid',
+      title: 'PAID AT SHOP',
+      body: `Keep Rs ${amount + fee} ready — food Rs ${amount} + delivery Rs ${fee}.`,
+      orderId,
+    });
+  }
+  return { ok: true };
+}
+
+export async function deliver(orderId, collectedAmount) {
   if (!db) return CONFIG_ERR;
   const orderRef = doc(ordersRef, orderId);
   let info = null;
@@ -209,7 +322,15 @@ export async function deliver(orderId) {
       const newCustomerCount = (customer?.customerOrderCount || 0) + 1;
       const newRiderCount = (rider?.riderOrderCount || 0) + 1;
 
-      tx.update(orderRef, { status: ORDER_STATUS.DELIVERED, updatedAt: serverTimestamp() });
+      const collected = typeof collectedAmount === 'number'
+        ? Math.max(0, Math.round(collectedAmount))
+        : (order.paidAmount || 0) + (order.deliveryFee || 0);
+
+      tx.update(orderRef, {
+        status: ORDER_STATUS.DELIVERED,
+        collectedAmount: collected,
+        updatedAt: serverTimestamp(),
+      });
       tx.update(doc(usersRef, order.customerId), { customerOrderCount: newCustomerCount });
       tx.update(doc(usersRef, order.riderId), { riderOrderCount: newRiderCount });
 
@@ -263,7 +384,7 @@ export async function cancelByCustomer(orderId) {
     const order = snap.data();
     if (order.status !== ORDER_STATUS.OPEN && order.status !== ORDER_STATUS.ACCEPTED)
       return { ok: false, error: 'INVALID', message: 'TOO LATE TO CANCEL' };
-    await updateDoc(orderRef, { status: ORDER_STATUS.CANCELLED, riderId: null, updatedAt: serverTimestamp() });
+    await updateDoc(orderRef, { status: ORDER_STATUS.CANCELLED, updatedAt: serverTimestamp() });
     if (order.riderId) {
       await safeNotify(order.riderId, {
         type: 'customer_cancel',

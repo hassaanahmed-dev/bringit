@@ -1,19 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getRank } from '../lib/rank';
 
 export default function RankUpOverlay({ show, prevTier, newTier, onDone }) {
   const [visible, setVisible] = useState(false);
+  // Callers pass a fresh inline arrow (e.g. onDone={() => setShowRankUp(false)}),
+  // so keep the latest callback in a ref and only depend on `show`. Otherwise a
+  // parent re-render (like the delivered-screen countdown ticking every second)
+  // restarts the timer forever and the overlay never dismisses.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     if (!show) return undefined;
     setVisible(true);
+    const timers = [];
     const t = setTimeout(() => {
       setVisible(false);
-      const t2 = setTimeout(() => onDone?.(), 400);
-      return () => clearTimeout(t2);
+      timers.push(setTimeout(() => onDoneRef.current?.(), 400));
     }, 2600);
-    return () => clearTimeout(t);
-  }, [show, onDone]);
+    timers.push(t);
+    return () => timers.forEach((id) => clearTimeout(id));
+  }, [show]);
+
+  // Safety net: Escape dismisses so a player can never get stuck behind the
+  // overlay even if the auto-timer is interrupted.
+  useEffect(() => {
+    if (!show) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setVisible(false);
+        onDoneRef.current?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [show]);
 
   if (!show || !visible) return null;
 

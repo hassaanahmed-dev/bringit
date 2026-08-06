@@ -14,7 +14,11 @@ export const ORDER_STATUS = Object.freeze({
   PAID_AT_SHOP: 'Paid at Shop',
   DELIVERED: 'Delivered',
   CANCELLED: 'Cancelled',
+  EXPIRED: 'Expired',
 });
+
+// Orders nobody accepts disappear from the pool after this long.
+export const ORDER_EXPIRY_MS = 10 * 60 * 1000;
 
 export const ORDER_LIFECYCLE = [
   'Placed',

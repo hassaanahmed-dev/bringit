@@ -17,6 +17,7 @@ const STATUS_STYLE = {
   'Paid at Shop': 'text-royal border-royal',
   'Delivered': 'text-leaf border-leaf',
   'Cancelled': 'text-danger border-danger',
+  'Expired': 'text-fade border-line',
 };
 
 export default function OrderHistory() {
@@ -35,7 +36,10 @@ export default function OrderHistory() {
       .getCustomerOrders(user.uid, { page, pageSize: PAGE_SIZE })
       .then((res) => {
         if (active) {
-          setState(res);
+          setState((prev) => ({
+            ...res,
+            orders: page === 0 ? res.orders : [...prev.orders, ...res.orders],
+          }));
           setError(false);
         }
       })
@@ -50,7 +54,7 @@ export default function OrderHistory() {
 
   const { orders: list, hasMore } = state;
 
-  if (loading && list.length === 0) return <Spinner label="LOADING LOG..." />;
+  if (loading && list.length === 0) return <Spinner label="LOADING ORDERS..." />;
 
   if (error && list.length === 0) {
     return (
@@ -69,7 +73,7 @@ export default function OrderHistory() {
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
       <div>
-        <h1 className="font-pixel text-[13px] text-cream">ORDER LOG</h1>
+        <h1 className="font-pixel text-[13px] text-cream">ORDERS</h1>
         <p className="font-crt text-fade text-lg">Every quest you've sent to the feed.</p>
       </div>
 

@@ -8,6 +8,7 @@ import PixelInput from '../components/PixelInput';
 import { RatingSummary, Stars } from '../components/Stars';
 import { orders } from '../lib/backend';
 import { getRank } from '../lib/rank';
+import { isMuted, setMuted } from '../lib/sounds';
 import { ROUTES } from '../lib/routes';
 
 export default function Profile() {
@@ -27,6 +28,7 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone);
+  const [muted, setMutedState] = useState(isMuted());
 
   const tier = getRank(user.customerOrderCount);
   const save = async () => {
@@ -34,9 +36,13 @@ export default function Profile() {
       toast('Fill in name and a valid phone', 'error');
       return;
     }
-    await updateProfile({ name: name.trim(), phone: phone.trim() });
-    setEditing(false);
-    toast('Profile updated', 'success');
+    try {
+      await updateProfile({ name: name.trim(), phone: phone.trim() });
+      setEditing(false);
+      toast('Profile updated', 'success');
+    } catch (e) {
+      toast('Could not update profile. Try again.', 'error');
+    }
   };
 
   const nextTier = getRank(user.customerOrderCount + 1);
@@ -158,6 +164,32 @@ export default function Profile() {
         ) : (
           <p className="font-crt text-fade text-lg">No ratings yet.</p>
         )}
+      </PixelCard>
+
+      <PixelCard>
+        <div className="font-pixel text-[8px] text-fade mb-3">SETTINGS</div>
+        <button
+          onClick={() => {
+            const next = !muted;
+            setMuted(next);
+            setMutedState(next);
+          }}
+          className="w-full flex items-center justify-between gap-2 border-2 border-line px-3 py-2.5 cursor-pointer hover:border-cream"
+        >
+          <span className="font-pixel text-[9px] text-cream">SFX & HAPTICS</span>
+          <span
+            className={`font-pixel text-[8px] px-2 py-1 border-2 ${
+              muted
+                ? 'text-fade border-line'
+                : 'text-black bg-leaf border-black'
+            }`}
+          >
+            {muted ? 'OFF' : 'ON'}
+          </span>
+        </button>
+        <p className="font-crt text-fade text-base mt-2">
+          Ping when new orders drop and chat messages arrive.
+        </p>
       </PixelCard>
 
       <PixelButton variant="ghost" block onClick={() => navigate(ROUTES.LEADERBOARD)}>

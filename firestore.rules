@@ -3,11 +3,15 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ═══════════════════════════════════════════════════
-    // USERS — private, only the owner reads/writes; order
-    // participants may update ONLY the aggregate counters.
+    // USERS — writes are private to the owner (order
+    // participants may update ONLY the aggregate counters).
+    // Reads are open to any signed-in player because the
+    // order lifecycle transactions (deliver / rate) read the
+    // counterpart's counters mid-transaction, and name/phone
+    // are already shared with riders via order docs.
     // ═══════════════════════════════════════════════════
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == userId;
       allow delete: if false;
 
@@ -25,8 +29,12 @@ service cloud.firestore {
     // ORDERS — full lifecycle state machine.
     // ═══════════════════════════════════════════════════
     match /orders/{orderId} {
+      // Open + Accepted are visible to any rider so the feed works and a
+      // taken order shows "ALREADY TAKEN" instead of a permission error.
+      // Participants always retain read access (cancelled orders keep the
+      // riderId so both sides can still see the outcome).
       allow read: if request.auth != null && (
-        resource.data.status == 'Open'
+        resource.data.status in ['Open', 'Accepted']
         || resource.data.customerId == request.auth.uid
         || resource.data.riderId == request.auth.uid
       );
@@ -43,21 +51,36 @@ service cloud.firestore {
           resource.data.customerId == request.auth.uid
           && resource.data.status in ['Open', 'Accepted']
           && request.resource.data.status == 'Cancelled'
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'updatedAt'])
         )
 
-        // (b) Any authenticated rider accepts an Open order
+        // (b) Any authenticated rider accepts an Open order (never their own)
         || (
           resource.data.status == 'Open'
           && request.resource.data.status == 'Accepted'
           && request.resource.data.riderId == request.auth.uid
+          && request.resource.data.customerId != request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'riderId', 'riderName', 'riderPhone', 'riderOrderCount', 'updatedAt'])
         )
 
         // (c) The assigned rider progresses their own order forward
         || (
           resource.data.riderId == request.auth.uid
           && (
-            (resource.data.status == 'Accepted' && request.resource.data.status == 'Paid at Shop')
-            || (resource.data.status == 'Paid at Shop' && request.resource.data.status == 'Delivered')
+            (
+              resource.data.status == 'Accepted'
+              && request.resource.data.status == 'Paid at Shop'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['status', 'paidAmount', 'updatedAt'])
+            )
+            || (
+              resource.data.status == 'Paid at Shop'
+              && request.resource.data.status == 'Delivered'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['status', 'collectedAmount', 'updatedAt'])
+            )
           )
         )
 
@@ -67,6 +90,8 @@ service cloud.firestore {
           && resource.data.status == 'Accepted'
           && request.resource.data.status == 'Open'
           && request.resource.data.riderId == null
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'riderId', 'riderName', 'riderPhone', 'riderOrderCount', 'updatedAt'])
         )
 
         // (e) The customer submits a rating on their own Delivered order
@@ -74,6 +99,44 @@ service cloud.firestore {
           resource.data.customerId == request.auth.uid
           && resource.data.status == 'Delivered'
           && request.resource.data.rated == true
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['rated', 'rating', 'updatedAt'])
+        )
+
+        // (f) The assigned rider marks "leaving the shop" — adds ETA, keeps status
+        || (
+          resource.data.riderId == request.auth.uid
+          && resource.data.status == 'Paid at Shop'
+          && request.resource.data.status == 'Paid at Shop'
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['departedAt', 'etaMinutes', 'updatedAt'])
+        )
+
+        // (g) The assigned rider shares live location — only touches location
+        || (
+          resource.data.riderId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['location', 'updatedAt'])
+        )
+
+        // (h) Anyone may tidy up an Open order that passed its expiry.
+        // Expiry is derived from the server createdAt clock so every client and
+        // the server agree on when an order dies (no device-clock skew).
+        || (
+          resource.data.status == 'Open'
+          && request.resource.data.status == 'Expired'
+          && request.time > resource.data.createdAt + duration.value(10, 'm')
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'updatedAt'])
+        )
+
+        // (i) The customer confirms payment on their own Delivered order
+        || (
+          resource.data.customerId == request.auth.uid
+          && resource.data.status == 'Delivered'
+          && request.resource.data.paymentConfirmed == true
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['paymentConfirmed', 'updatedAt'])
         )
       );
 
@@ -82,13 +145,24 @@ service cloud.firestore {
 
     // ═══════════════════════════════════════════════════
     // NOTIFICATIONS — owned by the recipient (targetUid).
-    // Anyone authenticated may push (lifecycle writers are order
-    // participants by construction).
+    // Writes are restricted to the recipient themselves or a
+    // participant of the linked order (lifecycle writers are
+    // order participants by construction), so nobody can spam
+    // arbitrary users.
     // ═══════════════════════════════════════════════════
     match /notifications/{id} {
+      function isOrderParticipant(orderId, uid) {
+        let order = get(/databases/$(database)/documents/orders/$(orderId)).data;
+        return order != null && (order.customerId == uid || order.riderId == uid);
+      }
       allow read, update, delete: if request.auth != null
         && resource.data.targetUid == request.auth.uid;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.targetUid != null
+        && (
+          request.resource.data.targetUid == request.auth.uid
+          || isOrderParticipant(request.resource.data.orderId, request.auth.uid)
+        );
     }
 
     // ═══════════════════════════════════════════════════
@@ -96,12 +170,15 @@ service cloud.firestore {
     // The linked order doc is checked directly via get().
     // ═══════════════════════════════════════════════════
     match /messages/{id} {
-      function isParticipant(uid) {
-        let order = get(/databases/$(database)/documents/orders/$(resource.data.orderId)).data;
+      // NOTE: isParticipant takes the orderId explicitly. On a create there is
+      // no existing document (resource is null), so resource.data.orderId would
+      // fail — reads must use resource.data.* and creates request.resource.data.*
+      function isParticipant(orderId, uid) {
+        let order = get(/databases/$(database)/documents/orders/$(orderId)).data;
         return order != null && (order.customerId == uid || order.riderId == uid);
       }
-      allow read: if request.auth != null && isParticipant(request.auth.uid);
-      allow create: if request.auth != null && isParticipant(request.auth.uid)
+      allow read: if request.auth != null && isParticipant(resource.data.orderId, request.auth.uid);
+      allow create: if request.auth != null && isParticipant(request.resource.data.orderId, request.auth.uid)
         && request.resource.data.senderId == request.auth.uid;
       allow update, delete: if false;
     }
@@ -113,7 +190,22 @@ service cloud.firestore {
     // ═══════════════════════════════════════════════════
     match /leaderboard/{id} {
       allow read: if request.auth != null;
-      allow create, update: if request.auth != null;
+      // Writes are non-PII aggregates (name + counts) refreshed by signup and
+      // the order lifecycle. Restrict to the exact aggregate shape so nobody
+      // can stuff arbitrary junk into the public board.
+      allow create: if request.auth != null
+        && request.resource.data.uid is string
+        && request.resource.data.name is string
+        && request.resource.data.role in ['customer', 'rider']
+        && request.resource.data.count is int
+        && request.resource.data.keys()
+           .hasOnly(['uid', 'name', 'role', 'count', 'riderRatingAvg', 'riderRatingCount']);
+      allow update: if request.auth != null
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.count is int
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['uid', 'name', 'role', 'count', 'riderRatingAvg', 'riderRatingCount']);
       allow delete: if false;
     }
   }

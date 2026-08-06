@@ -44,12 +44,19 @@ export async function sendMessage(orderId, sender, text) {
   }
 }
 
-export function listenMessages(orderId, cb) {
+export function listenMessages(orderId, cb, onError) {
   if (!messagesRef) {
     cb([]);
     return () => {};
   }
-  return onSnapshot(threadQuery(orderId), (snap) => cb(snap.docs.map(mapMessage)));
+  return onSnapshot(
+    threadQuery(orderId),
+    (snap) => cb(snap.docs.map(mapMessage)),
+    (err) => {
+      console.warn('[chat] listen failed', err?.code);
+      onError?.(err);
+    },
+  );
 }
 
 export async function getMessages(orderId) {
